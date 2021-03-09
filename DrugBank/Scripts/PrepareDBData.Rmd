@@ -1,0 +1,214 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Installing dbparser
+
+```{r}
+source("/home/jaume/Projects/GitRepos/Functions/LINCS_And_DB_Fun.R")
+install.packages("dbparser")
+```
+
+Loading libraries
+
+```{r}
+library(dbparser)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+ls()
+# https://cran.r-project.org/web/packages/dbparser/vignettes/dbparser.html
+#db_parsed <- 
+  
+install.packages("utf8")
+
+## parse data from XML and save it to memory
+
+read_drugbank_xml_db("/media/data/jaume/DrugBank/Data/full database.xml") 
+
+## Save drugs data
+
+drugs <- drugs()
+save(file = "/media/data/jaume/DrugBank/Data/drugs.Rda",drugs)
+
+## Save drug groups data
+
+drug_groups <- drug_groups()
+save(file = "/media/data/jaume/DrugBank/Data/drug_groups.Rda",drug_groups)
+
+## Save drug targets actions data
+
+drug_targets_actions <- targets_actions()
+save(file = "/media/data/jaume/DrugBank/Data/drug_targets_actions.Rda",drug_targets_actions)
+
+# Loading data.
+
+drugs <- get(load(file = "/media/data/jaume/DrugBank/Data/drugs.Rda"))
+
+drug_groups <- get(load(file = "/media/data/jaume/DrugBank/Data/drug_groups.Rda"))
+
+drug_targets_actions <- get(load(file = "/media/data/jaume/DrugBank/Data/drug_targets_actions.Rda"))
+
+##################
+#Formatting data.#
+##################
+
+#Getting DB to smiles.
+
+View(drugs[[16]]) #Smiles ID.
+df_SmilesID <- drugs[[16]]
+colnames(df_SmilesID)
+df_SmilesID_wide <- pivot_wider(df_SmilesID,names_from = "kind",values_from = "value" )
+colnames(df_SmilesID_wide)
+df_Smiles_Filt <- df_SmilesID_wide[,c("parent_key","SMILES")]
+View(df_Smiles_Filt)
+df_Smiles_Filt <- df_Smiles_Filt[!is.na(df_Smiles_Filt$SMILES),]
+nrow(df_Smiles_Filt)
+length(unique(df_Smiles_Filt$parent_key)) #11168 unique DB id  smiles ID.
+save(file = "/media/data/jaume/DrugBank/Data/df_Smiles_Filt.Rmd",df_Smiles_Filt)
+
+#Prepare DB classification for drugset enrichment analyses. We remove the kingdom and super class levels of classifications since they are not very informative for our purposes. Therefore we only add the class and subclass classification levels.
+
+classification_1 <- drugs[[2]]
+unique(classification_1$superclass)
+unique(classification_1$class)
+unique(classification_1$subclass)
+unique(classification_1$drugbank_id)
+colnames(classification_1)
+
+classification_1_class <- classification_1[,c("class","drugbank_id")]
+classification_1_class_splitted <- split(classification_1_class,as.factor(classification_1_class$class))
+classification_1_class_splitted <- lapply(classification_1_class_splitted,function(x) x %>% pull("drugbank_id"))
+
+classification_1_subclass <- classification_1[,c("subclass","drugbank_id")]
+classification_1_subclass_splitted <- split(classification_1_subclass,as.factor(classification_1_subclass$subclass))
+classification_1_subclass_splitted <- lapply(classification_1_subclass_splitted,function(x) x %>% pull("drugbank_id"))
+
+classification_1_all <- list(classification_1_class_splitted,classification_1_subclass_splitted)
+names(classification_1_all) <- c("class level","subclass level")
+
+save(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd",classification_1_all)
+get(load(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd"))
+
+#Prepare DB classification for drugset enrichment analyses. Only one level.
+
+classification_2 <- drugs[[10]]
+classification_2_category <- classification_2[,c("category","parent_key")]
+classification_2_category_splitted <- split(classification_2_category,as.factor(classification_2_category$category))
+classification_2_category_splitted <- lapply(classification_2_category_splitted,function(x) x %>% pull("parent_key"))
+
+save(file = "/media/data/jaume/DrugBank/Data/classification_2_category_splitted.Rmd",classification_2_category_splitted)
+classification_2_category_splitted <- get(load(file = "/media/data/jaume/DrugBank/Data/classification_2_category_splitted.Rmd"))
+
+
+classification_ATC <- drugs[[12]]
+unite(classification_ATC,"lev_col_1",c("level_1","code_1"),remove = F) -> classification_ATC
+unite(classification_ATC,"lev_col_2",c("level_2","code_2"),remove = F) -> classification_ATC
+unite(classification_ATC,"lev_col_3",c("level_3","code_3"),remove = F) -> classification_ATC
+unite(classification_ATC,"lev_col_4",c("level_4","code_4"),remove = F) -> classification_ATC
+colnames(classification_ATC)
+
+classification_ATC_level_1 <- classification_ATC[,c("lev_col_1","drugbank-id")]
+classification_ATC_level_1_splitted <- split(classification_ATC_level_1,as.factor(classification_ATC_level_1$lev_col_1))
+classification_ATC_level_1_splitted <- lapply(classification_ATC_level_1_splitted,function(x) x %>% pull("drugbank-id"))
+
+classification_ATC_level_2 <- classification_ATC[,c("lev_col_2","drugbank-id")]
+classification_ATC_level_2_splitted <- split(classification_ATC_level_2,as.factor(classification_ATC_level_2$lev_col_2))
+classification_ATC_level_2_splitted <- lapply(classification_ATC_level_2_splitted,function(x) x %>% pull("drugbank-id"))
+
+classification_ATC_level_3 <- classification_ATC[,c("lev_col_3","drugbank-id")]
+classification_ATC_level_3_splitted <- split(classification_ATC_level_3,as.factor(classification_ATC_level_3$lev_col_3))
+classification_ATC_level_3_splitted <- lapply(classification_ATC_level_3_splitted,function(x) x %>% pull("drugbank-id"))
+
+classification_ATC_level_4 <- classification_ATC[,c("lev_col_4","drugbank-id")]
+classification_ATC_level_4_splitted <- split(classification_ATC_level_4,as.factor(classification_ATC_level_4$lev_col_4))
+classification_ATC_level_4_splitted <- lapply(classification_ATC_level_4_splitted,function(x) x %>% pull("drugbank-id"))
+
+classification_ATC_all <- list(classification_ATC_level_1_splitted,classification_ATC_level_2_splitted,classification_ATC_level_3_splitted,classification_ATC_level_4_splitted)
+names(classification_ATC_all) <- c("level_1","level_2","level_3","level_4")
+save(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd",classification_ATC_all)
+classification_ATC_all <- get(load(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd"))
+
+#Prepare DB to external ID data.frame
+
+external_IDs <- drugs[[17]]
+external_IDs_wide <- pivot_wider(external_IDs,names_from = "resource",values_from = "identifier" )
+View(external_IDs_wide)
+length(external_IDs_wide$parent_key)
+length(unique(external_IDs_wide$parent_key))
+rownames(external_IDs_wide) <- external_IDs_wide$parent_key
+save(file = "/media/data/jaume/DrugBank/Data/external_IDs_wide.Rmd",external_IDs_wide) #There are 13615 unique DB ids in the external ID data.frame.
+
+#Getting drug class information (approved, investigational, etc)
+
+Drug_Class <- drugs[[30]] #Extract drug class.
+save(file = "/media/data/jaume/DrugBank/Data/Drug_Class.Rmd",Drug_Class) #There are 13615 unique DB ids in the external ID data.frame.
+
+
+#Getting inchii key.
+
+Inchii_Key <- drugs[[33]]
+Inchii_Key <- Inchii_Key[,c("inchikey","parent_key")]
+Inchii_Key <- Inchii_Key[!Inchii_Key$inchikey == "",]
+length(Inchii_Key$parent_key)
+length(unique(Inchii_Key$parent_key))
+Inchii_Key <- unique(Inchii_Key)
+save(file = "/media/data/jaume/DrugBank/Data/Inchii_Key.Rmd",Inchii_Key) #There are 13615 unique DB ids in the external ID data.frame.
+
+#Getting Drugs general information.
+
+Drugs_All <- drugs[[1]]
+save(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd",Drugs_All)
+Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+```
+
+Mounting complete df.
+
+```{r}
+Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+
+df_Smiles_Filt <- get(load(file = "/media/data/jaume/DrugBank/Data/df_Smiles_Filt.Rmd"))
+
+Inchii_Key <- get(load(file = "/media/data/jaume/DrugBank/Data/Inchii_Key.Rmd"))
+
+external_IDs_wide <- get(load(file = "/media/data/jaume/DrugBank/Data/external_IDs_wide.Rmd"))
+
+Drug_Class <- get(load(file = "/media/data/jaume/DrugBank/Data/Drug_Class.Rmd"))
+
+save(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd") #There are 13615 unique DB ids in the external ID data.frame.
+
+#Generate complete data.frame
+
+colnames(Drugs_All)
+colnames(df_Smiles_Filt)[1] <- "primary_key"
+Drugs_All <- left_join(Drugs_All, df_Smiles_Filt,by = "primary_key")
+colnames(Inchii_Key)[2] <- "primary_key"
+Drugs_All <- left_join(Drugs_All, Inchii_Key,by = "primary_key")
+colnames(external_IDs_wide)[1] <- "primary_key"
+Drugs_All <- left_join(Drugs_All,external_IDs_wide,by = "primary_key")
+colnames(Drug_Class)[2] <- "primary_key"
+Drugs_All <- left_join(Drugs_All,Drug_Class,by = "primary_key")
+Drugs_All %>% mutate_all(~ replace(., . == "NULL" , NA)) -> Drugs_All
+save(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd",Drugs_All)
+```
+
+Loading generated data.
+
+```{r}
+#Load Drugs_All data.
+
+Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+
+#Loading classifications.
+
+classification_1_all <-get(load(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd"))
+
+classification_2_category_splitted <- get(load(file = "/media/data/jaume/DrugBank/Data/classification_2_category_splitted.Rmd"))
+
+classification_ATC_all <- get(load(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd"))
+```
+

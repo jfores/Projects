@@ -1,0 +1,94 @@
+---
+title: "Untitled"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+options(stringsAsFactors = F)
+```
+
+Install slinky.
+
+```{r}
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+#BiocManager::install("slinky")
+```
+
+
+Loading libraries.
+
+
+```{r}
+library(slinky)
+library(tibble)
+library(dplyr)
+library(cmapR)
+```
+
+Working with slinky.
+
+```{r}
+fileName="/home/jaume/Projects/LINCSL1000/Data/ApiKey.txt"
+con=file(fileName,open="r")
+key=readLines(con) 
+
+gctx_phase1 <- "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_Level5_COMPZ.MODZ_n473647x12328.gctx"
+info_phase1 <- "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_inst_info.txt.gz"
+
+Phase1_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_inst_info.txt.gz",sep = "\t")
+Phase1_Sig_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_sig_info.txt.gz",sep = "\t")
+Phase1_Pert_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_pert_info.txt.gz",sep = "\t")
+
+View(Phase1_Info)
+View(Phase1_Pert_Info)
+View(Phase1_Sig_Info)
+
+#Merging Perturbation and Sinature info Phase 1.
+
+Phase1_Sig_Info <- as_tibble(Phase1_Sig_Info)
+Phase1_Pert_Info <- as_tibble(Phase1_Pert_Info)
+Phase1_Sig_And_Pert <- left_join(Phase1_Sig_Info,Phase1_Pert_Info,by = "pert_id")
+View(Phase1_Sig_And_Pert)
+save(file = "/media/data/jaume/LINCS_Raw/PhaseI/Phase1_Sig_And_Pert.Rda",Phase1_Sig_And_Pert)
+
+#Retrieving colids from phase 1.
+
+phaseI_col_meta <- read_gctx_meta(gctx_phase1, dim="col")
+
+length(intersect(Phase1_Sig_And_Pert$sig_id,phaseI_col_meta$id))
+length(setdiff(Phase1_Sig_And_Pert$sig_id,phaseI_col_meta$id))
+length(setdiff(phaseI_col_meta$id,Phase1_Sig_And_Pert$sig_id))
+
+#Getting phase2 info
+
+gctx_phase2 <- "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_Level5_COMPZ_n118050x12328_2017-03-06.gctx"
+info_phase2 <- "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_inst_info_2017-03-06.txt.gz"
+
+Phase2_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_inst_info_2017-03-06.txt.gz",sep = "\t")
+View(Phase1_Info)
+Phase2_Sig_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_sig_info_2017-03-06.txt.gz",sep = "\t")
+Phase2_Pert_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_pert_info_2017-03-06.txt.gz",sep = "\t")
+View(Phase2_Pert_Info)
+
+Phase2_Sig_Info <- as_tibble(Phase2_Sig_Info)
+Phase2_Pert_Info <- as_tibble(Phase2_Pert_Info)
+Phase2_Sig_And_Pert <- left_join(Phase2_Sig_Info,Phase2_Pert_Info,by = "pert_id")
+View(Phase2_Sig_And_Pert)
+save(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda",Phase2_Sig_And_Pert)
+
+
+#Retrieving colids from phase 2.
+
+phaseII_col_meta <- read_gctx_meta(gctx_phase2, dim="col")
+
+length(intersect(Phase2_Sig_And_Pert$sig_id,phaseII_col_meta$id))
+length(setdiff(Phase2_Sig_And_Pert$sig_id,phaseII_col_meta$id))
+length(setdiff(phaseII_col_meta$id,Phase2_Sig_And_Pert$sig_id))
+
+
+```
+

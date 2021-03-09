@@ -1,0 +1,19 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+install.packages(c("httr", "jsonlite"))
+```
+
+```{r}
+library(httr)
+library(jsonlite)
+```
+
+```{r}
+
+```
+

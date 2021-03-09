@@ -1,0 +1,41 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+options(stringsAsFactors = F)
+```
+
+```{r}
+#Loading Phases 1 and 2 data.
+
+Phase1_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseI/Phase1_Sig_And_Pert.Rda"))
+
+Phase2_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda"))
+
+Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+pubchcomp <- unlist(Drugs_All$`PubChem Compound`)
+pubchcomp_phase1 <- Phase2_Sig_And_Pert$pubchem_cid
+intersect(pubchcomp,pubchcomp_phase1)
+
+
+View(Drugs_All)
+
+
+length(intersect(unlist(Drugs_All$`PubChem Compound`),Phase1_Sig_And_Pert$pubchem_cid))
+length(setdiff(unlist(Drugs_All$`PubChem Compound`),Phase1_Sig_And_Pert$pubchem_cid))
+length(setdiff(Phase1_Sig_And_Pert$pubchem_cid,unlist(Drugs_All$`PubChem Compound`)))
+
+intersect(Drugs_All$SMILES,Phase1_Sig_And_Pert$canonical_smiles)
+length(setdiff(unlist(Drugs_All$SMILES),Phase1_Sig_And_Pert$canonical_smiles))
+length(setdiff(Phase1_Sig_And_Pert$canonical_smiles,Drugs_All$SMILES))
+head(Phase1_Sig_And_Pert$canonical_smiles)
+head(Drugs_All$SMILES)
+
+unique(Drugs_All$inchikey)
+
+intersect(unlist(Drugs_All$inchikey),Phase1_Sig_And_Pert$inchi_key)
+```
+
