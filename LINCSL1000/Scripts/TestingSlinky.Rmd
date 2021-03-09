@@ -6,6 +6,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+rm(list = ls())
 options(stringsAsFactors = F)
 ```
 
@@ -29,7 +30,26 @@ library(dplyr)
 library(cmapR)
 ```
 
-Working with slinky.
+Loading data of standardized compound names downloaded from: http://lincsportal.ccs.miami.edu/dcic-portal/#/list/LINCS_Data__Metadata__Small_Molecules__current
+
+```{r}
+Compound_LINCS <- read.csv(file = "/media/data/jaume/LINCS_Raw/other_files/CompoundTable_LINCS_StandardizedCmpds_LSMIDs_INCHI.txt",sep="\t")
+View(Compound_LINCS)
+class(Compound_LINCS)
+colnames(Compound_LINCS)[5] <- "inchi_key"
+Compound_LINCS <- as_tibble(Compound_LINCS)
+```
+
+Mapping LINCS LSM ids to DrugBank IDs using UniChem REST
+
+```{r}
+res = GET("https://www.ebi.ac.uk/unichem/rest/mapping/2/25")
+rawToChar(res$content)
+UniChemMap = fromJSON(rawToChar(res$content))
+colnames(UniChemMap) <- c("SM_LINCS_ID","DB_IDS")
+UniChemMap <- as_tibble(UniChemMap)
+```
+
 
 ```{r}
 fileName="/home/jaume/Projects/LINCSL1000/Data/ApiKey.txt"
@@ -52,7 +72,30 @@ View(Phase1_Sig_Info)
 Phase1_Sig_Info <- as_tibble(Phase1_Sig_Info)
 Phase1_Pert_Info <- as_tibble(Phase1_Pert_Info)
 Phase1_Sig_And_Pert <- left_join(Phase1_Sig_Info,Phase1_Pert_Info,by = "pert_id")
+colnames(Phase1_Sig_And_Pert)
+select(Phase1_Sig_And_Pert, -c(pert_iname.y, pert_type.y)) -> Phase1_Sig_And_Pert
+rename(Phase1_Sig_And_Pert,  pert_iname = pert_iname.x) -> Phase1_Sig_And_Pert
+rename(Phase1_Sig_And_Pert,  pert_type = pert_type.x) -> Phase1_Sig_And_Pert
+
+
+nrow(Phase1_Sig_And_Pert) #Phase one includes 473647 rows.
+length(unique(Phase1_Sig_And_Pert$sig_id)) # Phase one includes 473647 signatures.
+length(unique(Phase1_Sig_And_Pert$pert_id)) #Phase one includes 51219 perturbations.
+length(unique(Phase1_Sig_And_Pert$pubchem_cid)) #Phase one includes 19168 pubchiem compound ids.
+
+length(intersect(Phase1_Sig_And_Pert$inchi_key,Compound_LINCS$inchi_key)) #There are 19777 shared inchi keys.
+length(intersect(Phase1_Sig_And_Pert$canonical_smiles,Compound_LINCS$SM_SMILES)) #There are 7429 shared smiles.
+
+Phase1_Sig_And_Pert <- left_join(Phase1_Sig_And_Pert,Compound_LINCS,by = "inchi_key")
+length(unique(Phase1_Sig_And_Pert$SM_LINCS_ID))
+colnames(Phase1_Sig_And_Pert)
 View(Phase1_Sig_And_Pert)
+
+Phase1_Sig_And_Pert <- left_join(Phase1_Sig_And_Pert,UniChemMap,by = "SM_LINCS_ID")
+View(Phase1_Sig_And_Pert)
+table(!is.na(Phase1_Sig_And_Pert$DB_IDS))
+length(unique(Phase1_Sig_And_Pert$DB_IDS)) #There are signatures for 1378 DB ids in Phase one data.
+
 save(file = "/media/data/jaume/LINCS_Raw/PhaseI/Phase1_Sig_And_Pert.Rda",Phase1_Sig_And_Pert)
 
 #Retrieving colids from phase 1.
@@ -69,7 +112,6 @@ gctx_phase2 <- "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_Level5_
 info_phase2 <- "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_inst_info_2017-03-06.txt.gz"
 
 Phase2_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_inst_info_2017-03-06.txt.gz",sep = "\t")
-View(Phase1_Info)
 Phase2_Sig_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_sig_info_2017-03-06.txt.gz",sep = "\t")
 Phase2_Pert_Info <- read.csv(file = "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_pert_info_2017-03-06.txt.gz",sep = "\t")
 View(Phase2_Pert_Info)
@@ -77,9 +119,29 @@ View(Phase2_Pert_Info)
 Phase2_Sig_Info <- as_tibble(Phase2_Sig_Info)
 Phase2_Pert_Info <- as_tibble(Phase2_Pert_Info)
 Phase2_Sig_And_Pert <- left_join(Phase2_Sig_Info,Phase2_Pert_Info,by = "pert_id")
-View(Phase2_Sig_And_Pert)
-save(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda",Phase2_Sig_And_Pert)
+select(Phase2_Sig_And_Pert, -c(pert_iname.y, pert_type.y)) -> Phase2_Sig_And_Pert
+rename(Phase2_Sig_And_Pert,  pert_iname = pert_iname.x) -> Phase2_Sig_And_Pert
+rename(Phase2_Sig_And_Pert,  pert_type = pert_type.x) -> Phase2_Sig_And_Pert
 
+nrow(Phase2_Sig_And_Pert) #Phase two includes 118050 rows.
+length(unique(Phase2_Sig_And_Pert$sig_id)) # Phase two includes 118050 signatures.
+length(unique(Phase2_Sig_And_Pert$pert_id)) #Phase two includes 2170 perturbations.
+
+
+length(intersect(Phase2_Sig_And_Pert$inchi_key,Compound_LINCS$inchi_key)) #There are 1732 shared inchi keys.
+length(intersect(Phase2_Sig_And_Pert$canonical_smiles,Compound_LINCS$SM_SMILES)) #There are 283 shared smiles.
+
+Phase2_Sig_And_Pert <- left_join(Phase2_Sig_And_Pert,Compound_LINCS,by = "inchi_key")
+length(unique(Phase2_Sig_And_Pert$SM_LINCS_ID))
+colnames(Phase2_Sig_And_Pert)
+View(Phase2_Sig_And_Pert)
+
+Phase2_Sig_And_Pert <- left_join(Phase2_Sig_And_Pert,UniChemMap,by = "SM_LINCS_ID")
+View(Phase2_Sig_And_Pert)
+table(!is.na(Phase2_Sig_And_Pert$DB_IDS))
+length(unique(Phase2_Sig_And_Pert$DB_IDS)) #There are signatures for 1088 DB ids in Phase two data.
+
+save(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda",Phase2_Sig_And_Pert)
 
 #Retrieving colids from phase 2.
 
@@ -89,6 +151,8 @@ length(intersect(Phase2_Sig_And_Pert$sig_id,phaseII_col_meta$id))
 length(setdiff(Phase2_Sig_And_Pert$sig_id,phaseII_col_meta$id))
 length(setdiff(phaseII_col_meta$id,Phase2_Sig_And_Pert$sig_id))
 
+#http://lincsportal.ccs.miami.edu/SmallMolecules/catalog
 
+#https://maayanlab.cloud/L1000FWD/download_page
 ```
 
