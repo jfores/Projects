@@ -7,7 +7,9 @@ editor_options:
 Installing dbparser
 
 ```{r}
-source("/home/jaume/Projects/GitRepos/Functions/LINCS_And_DB_Fun.R")
+rm(list = ls())
+options(stringsAsFactors = F)
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
 install.packages("dbparser")
 ```
 
@@ -24,7 +26,7 @@ ls()
 # https://cran.r-project.org/web/packages/dbparser/vignettes/dbparser.html
 #db_parsed <- 
   
-install.packages("utf8")
+#install.packages("utf8")
 
 ## parse data from XML and save it to memory
 
@@ -64,7 +66,9 @@ df_SmilesID <- drugs[[16]]
 colnames(df_SmilesID)
 df_SmilesID_wide <- pivot_wider(df_SmilesID,names_from = "kind",values_from = "value" )
 colnames(df_SmilesID_wide)
+
 df_Smiles_Filt <- df_SmilesID_wide[,c("parent_key","SMILES")]
+
 View(df_Smiles_Filt)
 df_Smiles_Filt <- df_Smiles_Filt[!is.na(df_Smiles_Filt$SMILES),]
 nrow(df_Smiles_Filt)
@@ -92,7 +96,7 @@ classification_1_all <- list(classification_1_class_splitted,classification_1_su
 names(classification_1_all) <- c("class level","subclass level")
 
 save(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd",classification_1_all)
-get(load(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd"))
+classification_1_all <- get(load(file = "/media/data/jaume/DrugBank/Data/classification_1_all.Rmd"))
 
 #Prepare DB classification for drugset enrichment analyses. Only one level.
 
@@ -136,11 +140,13 @@ classification_ATC_all <- get(load(file = "/media/data/jaume/DrugBank/Data/class
 #Prepare DB to external ID data.frame
 
 external_IDs <- drugs[[17]]
-external_IDs_wide <- pivot_wider(external_IDs,names_from = "resource",values_from = "identifier" )
-View(external_IDs_wide)
-length(external_IDs_wide$parent_key)
-length(unique(external_IDs_wide$parent_key))
-rownames(external_IDs_wide) <- external_IDs_wide$parent_key
+unique(external_IDs$resource)
+View(external_IDs)
+colnames(external_IDs)
+external_IDs_wide <- pivot_wider(external_IDs,names_from = "resource",values_from = "identifier",values_fill = NA,values_fn = function(x) paste(x,collapse = "-"))
+external_IDs_wide$`PubChem Compound`
+unique(external_IDs_wide$`PubChem Compound`)
+
 save(file = "/media/data/jaume/DrugBank/Data/external_IDs_wide.Rmd",external_IDs_wide) #There are 13615 unique DB ids in the external ID data.frame.
 
 #Getting drug class information (approved, investigational, etc)
@@ -161,15 +167,15 @@ save(file = "/media/data/jaume/DrugBank/Data/Inchii_Key.Rmd",Inchii_Key) #There 
 
 #Getting Drugs general information.
 
-Drugs_All <- drugs[[1]]
-save(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd",Drugs_All)
-Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+Drugs_table_1 <- drugs[[1]]
+save(file = "/media/data/jaume/DrugBank/Data/Drugs_table_1.Rmd",Drugs_table_1)
+Drugs_table_1 <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_table_1.Rmd"))
 ```
 
 Mounting complete df.
 
 ```{r}
-Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+Drugs_table_1 <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_table_1.Rmd"))
 
 df_Smiles_Filt <- get(load(file = "/media/data/jaume/DrugBank/Data/df_Smiles_Filt.Rmd"))
 
@@ -179,13 +185,13 @@ external_IDs_wide <- get(load(file = "/media/data/jaume/DrugBank/Data/external_I
 
 Drug_Class <- get(load(file = "/media/data/jaume/DrugBank/Data/Drug_Class.Rmd"))
 
-save(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd") #There are 13615 unique DB ids in the external ID data.frame.
+#save(file = "/media/data/jaume/DrugBank/Data/classification_ATC_all.Rmd") #There are 13615 unique DB ids in the external ID data.frame.
 
 #Generate complete data.frame
 
-colnames(Drugs_All)
+colnames(Drugs_table_1)
 colnames(df_Smiles_Filt)[1] <- "primary_key"
-Drugs_All <- left_join(Drugs_All, df_Smiles_Filt,by = "primary_key")
+Drugs_All <- left_join(Drugs_table_1, df_Smiles_Filt,by = "primary_key")
 colnames(Inchii_Key)[2] <- "primary_key"
 Drugs_All <- left_join(Drugs_All, Inchii_Key,by = "primary_key")
 colnames(external_IDs_wide)[1] <- "primary_key"
