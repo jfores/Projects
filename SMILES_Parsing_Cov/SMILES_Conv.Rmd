@@ -1,0 +1,78 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+
+library(dplyr)
+library(tibble)
+
+#Functions
+
+function_to_get_smiles <- function(x){
+  try({
+    return(get.smiles(x,flavor =  smiles.flavors(flavors = "Canonical")))
+  })
+}
+
+
+library(rcdk)
+parse.smiles('C1C=CCC1N(C)c1ccccc1')
+
+Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
+smiles_unique <- unique(Drugs_All$SMILES)
+smiles_unique <- smiles_unique[!is.na(smiles_unique)]
+head(smiles_unique)
+
+parsed_SMILES <- parse.smiles(smiles_unique)
+Canonical_Smiles <- lapply(parsed_SMILES,function_to_get_smiles)
+length(Canonical_Smiles)
+df_temp <- data.frame(names(Canonical_Smiles),unlist(Canonical_Smiles))
+colnames(df_temp) <- c("SMILES","Canonical_Smiles")
+Drugs_All <- left_join(Drugs_All,df_temp,"SMILES")
+View(head(Drugs_All,100))
+class(Drugs_All)
+
+save(file = "/media/data/jaume/LINCS_Raw/other_files/Drugs_All_Can_Smiles.Rda",Drugs_All)
+
+Phase2_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda"))
+smiles_unique <- unique(Phase2_Sig_And_Pert$canonical_smiles)
+length(smiles_unique)
+
+parsed_SMILES <- parse.smiles(smiles_unique)
+Canonical_Smiles <- lapply(parsed_SMILES,function_to_get_smiles)
+df_temp <- data.frame(names(Canonical_Smiles),unlist(Canonical_Smiles))
+View(head(df_temp))
+colnames(df_temp) <- c("canonical_smiles","Canonical_smiles")
+Phase2_Sig_And_Pert <- left_join(Phase2_Sig_And_Pert,df_temp)
+View(Phase2_Sig_And_Pert)
+
+save(file = "/media/data/jaume/LINCS_Raw/other_files/Phase2_Sig_And_Pert_Can_Smiles.Rda",Phase2_Sig_And_Pert)
+
+
+length(unique(Phase2_Sig_And_Pert$Canonical_smiles))
+length(intersect(Drugs_All$Canonical_Smiles,Phase2_Sig_And_Pert$Canonical_smiles))
+
+Phase1_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseI/Phase1_Sig_And_Pert.Rda"))
+smiles_unique <- unique(Phase1_Sig_And_Pert$canonical_smiles)
+head(smiles_unique)
+
+parsed_SMILES <- parse.smiles(smiles_unique)
+Canonical_Smiles <- lapply(parsed_SMILES,function_to_get_smiles)
+table(is.na(names(Canonical_Smiles)))
+Canonical_Smiles <- Canonical_Smiles[!is.na(names(Canonical_Smiles))]
+df_temp <- data.frame(names(Canonical_Smiles),unlist(Canonical_Smiles))
+dim(df_temp)
+View(head(df_temp))
+colnames(df_temp) <- c("canonical_smiles","Canonical_smiles")
+Phase1_Sig_And_Pert <- left_join(Phase1_Sig_And_Pert,df_temp)
+View(head(Phase1_Sig_And_Pert))
+
+save(file = "/media/data/jaume/LINCS_Raw/other_files/Phase1_Sig_And_Pert_Can_Smiles.Rda",Phase1_Sig_And_Pert)
+
+length(unique(Phase1_Sig_And_Pert$Canonical_smiles))
+length(intersect(Drugs_All$Canonical_Smiles,Phase1_Sig_And_Pert$Canonical_smiles))
+
+```
+
