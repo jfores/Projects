@@ -14,6 +14,21 @@ library(jsonlite)
 ```
 
 ```{r}
+res = GET("https://www.ebi.ac.uk/unichem/rest/mapping/2/25")
+rawToChar(res$content)
+data = fromJSON(rawToChar(res$content))
+View(data)
+data
+
+res_2 = GET("https://api.clue.io/api/perts?filter={%22fields%22:[%22pert_id%22,%22pert_iname%22,%22id%22,%22structure_url%22,%22canonical_smiles%22,%22moa%22,%22mls_id%22],%22limit%22:100000}&user_key=5f6f0aa8f8c3c6239feb822577030e2b")
+
+res_2 = GET("https://api.clue.io/api/perts?filter={%22fields%22:[%22pert_id%22,%22pert_url%22,%22inchi_key%22,%22inchi_string%22,%22pert_iname%22,%22id%22,%22structure_url%22,%22canonical_smiles%22,%22moa%22,%22mls_id%22],%22skip%22:1000}&user_key=5f6f0aa8f8c3c6239feb822577030e2b")
+rawToChar(res_2$content)
+data = fromJSON(rawToChar(res_2$content))
+View(data)
+
+https://clue.io/developer-resources#apisection
+
 
 ```
 

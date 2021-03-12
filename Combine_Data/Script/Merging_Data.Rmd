@@ -15,7 +15,7 @@ options(stringsAsFactors = F)
 
 Phase1_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Phase1_Sig_And_Pert_Can_Smiles.Rda"))
 Phase1_Sig_And_Pert$Canonical_smiles[grepl("Error",Phase1_Sig_And_Pert$Canonical_smiles)] <- NA
-
+View(Phase1_Sig_And_Pert)
 
 Phase2_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Phase2_Sig_And_Pert_Can_Smiles.Rda"))
 Phase2_Sig_And_Pert$Canonical_smiles[grepl("Error",Phase2_Sig_And_Pert$Canonical_smiles)] <- NA

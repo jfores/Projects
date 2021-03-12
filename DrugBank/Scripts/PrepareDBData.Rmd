@@ -36,6 +36,13 @@ read_drugbank_xml_db("/media/data/jaume/DrugBank/Data/full database.xml")
 
 drugs <- drugs()
 save(file = "/media/data/jaume/DrugBank/Data/drugs.Rda",drugs)
+drugs <- get(load(file = "/media/data/jaume/DrugBank/Data/drugs.Rda"))
+
+names(drugs)
+colnames(drugs[[34]])
+View(drugs[[16]])
+
+
 
 ## Save drug groups data
 
