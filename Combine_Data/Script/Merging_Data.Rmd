@@ -5,37 +5,86 @@ editor_options:
 ---
 
 ```{r}
+library(tibble)
+library(dplyr)
 options(stringsAsFactors = F)
 ```
 
 ```{r}
 #Loading Phases 1 and 2 data.
 
-Phase1_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseI/Phase1_Sig_And_Pert.Rda"))
-
-Phase2_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/PhaseII/Phase2_Sig_And_Pert.Rda"))
-
-Drugs_All <- get(load(file = "/media/data/jaume/DrugBank/Data/Drugs_All.Rmd"))
-pubchcomp <- unlist(Drugs_All$`PubChem Compound`)
-pubchcomp_phase1 <- Phase2_Sig_And_Pert$pubchem_cid
-intersect(pubchcomp,pubchcomp_phase1)
+Phase1_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Phase1_Sig_And_Pert_Can_Smiles.Rda"))
+Phase1_Sig_And_Pert$Canonical_smiles[grepl("Error",Phase1_Sig_And_Pert$Canonical_smiles)] <- NA
 
 
-View(Drugs_All)
+Phase2_Sig_And_Pert <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Phase2_Sig_And_Pert_Can_Smiles.Rda"))
+Phase2_Sig_And_Pert$Canonical_smiles[grepl("Error",Phase2_Sig_And_Pert$Canonical_smiles)] <- NA
+
+Drugs_All <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Drugs_All_Can_Smiles.Rda"))
+Drugs_All$Canonical_Smiles[grepl("Error",Drugs_All$Canonical_Smiles)] <- NA
+
+intersected <- intersect(Phase1_Sig_And_Pert$DB_IDS,Phase2_Sig_And_Pert$DB_IDS)
+length(intersected) #633 DB IDs are available in both PhaseI and PhaseII LINCS data.
+
+length(unique(c(Phase1_Sig_And_Pert$DB_IDS,Phase2_Sig_And_Pert$DB_IDS))) #In total 1832 DB IDs are available in PhaseI and PhaseII data.
+
+length(unique(Drugs_All$primary_key)) #In DB there are 14315 ids.
+
+#How many pubchem IDs are the same in DB and LINCS.
+
+length(intersect(Drugs_All$`PubChem Compound`,Phase1_Sig_And_Pert$pubchem_cid)) #There are 747 shared pubchem IDs in phases I data and DB.
+
+intersect(colnames(Phase1_Sig_And_Pert),colnames(Phase2_Sig_And_Pert))
+
+#Merging Phase 1 and 2 data.
+
+Phase1_Sig_And_Pert$Phase <- rep("Phase_I",nrow(Phase1_Sig_And_Pert))
+colnames(Phase1_Sig_And_Pert)
+Phase2_Sig_And_Pert$Phase <- rep("Phase_II",nrow(Phase2_Sig_And_Pert))
+colnames(Phase2_Sig_And_Pert)
+
+Phase1_Sig_And_Pert_Filt <- Phase1_Sig_And_Pert[,intersect(colnames(Phase1_Sig_And_Pert),colnames(Phase2_Sig_And_Pert))]
+Phase2_Sig_And_Pert_Filt <- Phase2_Sig_And_Pert[,intersect(colnames(Phase1_Sig_And_Pert),colnames(Phase2_Sig_And_Pert))]
+
+All_Sig_And_Pert <- rbind(Phase1_Sig_And_Pert_Filt,Phase2_Sig_And_Pert_Filt) #Phase I and II data merged.
+
+#Merging using canonical SMILAS formated by us.
+
+colnames(Drugs_All)[38] <- "Canonical_smiles"
+
+#All LINCS data with DB mapping.
+
+All_LINCS <- left_join(All_Sig_And_Pert,Drugs_All,by = "Canonical_smiles",na_matches = "never")
+save(file = "/media/data/jaume/LINCS_Raw/other_files/All_LINCS_with_DB.Rda",All_LINCS)
+
+#All DB data with lincs mapping.
+
+All_DB <- left_join(Drugs_All,All_Sig_And_Pert,by = "Canonical_smiles",na_matches = "never")
+save(file = "/media/data/jaume/LINCS_Raw/other_files/All_DB_with_LINCS.Rda",All_DB)
+
+#DB LINCS signature mapping.
+
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
 
 
-length(intersect(unlist(Drugs_All$`PubChem Compound`),Phase1_Sig_And_Pert$pubchem_cid))
-length(setdiff(unlist(Drugs_All$`PubChem Compound`),Phase1_Sig_And_Pert$pubchem_cid))
-length(setdiff(Phase1_Sig_And_Pert$pubchem_cid,unlist(Drugs_All$`PubChem Compound`)))
+mapping_LINCS_DB <- get_mapping_LINCS_DB(All_LINCS)
+length(unique(mapping_LINCS_DB$primary_key))
 
-intersect(Drugs_All$SMILES,Phase1_Sig_And_Pert$canonical_smiles)
-length(setdiff(unlist(Drugs_All$SMILES),Phase1_Sig_And_Pert$canonical_smiles))
-length(setdiff(Phase1_Sig_And_Pert$canonical_smiles,Drugs_All$SMILES))
-head(Phase1_Sig_And_Pert$canonical_smiles)
-head(Drugs_All$SMILES)
 
-unique(Drugs_All$inchikey)
+View(All_DB)
 
-intersect(unlist(Drugs_All$inchikey),Phase1_Sig_And_Pert$inchi_key)
+View(All_LINCS)
+#length(unique(All_LINCS$primary_key))
+colnames(All_LINCS)
+LINCS_Sitnature_To_DB <- unique(All_LINCS[,c("sig_id","pert_iname","primary_key","name")])
+LINCS_Sitnature_To_DB <- LINCS_Sitnature_To_DB[!is.na(LINCS_Sitnature_To_DB$primary_key),]
+View(LINCS_Sitnature_To_DB)
+mean(table(LINCS_Sitnature_To_DB$primary_key))
+
+
+
+
+
+
 ```
 
