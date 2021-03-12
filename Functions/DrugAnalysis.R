@@ -12,11 +12,16 @@ get_mapping_LINCS_DB <- function(x_All_LINCS){
 
 from_ICD_to_Indicated_DB <- function(icd_code,x_main_an_hp_drugs_all){
   x_main_an_hp_drugs_all <- x_main_an_hp_drugs_all[grepl(icd_code,x_main_an_hp_drugs_all$ICD9),]
-  out_list <- list(unique(x_main_an_hp_drugs_all$primary_key))
+  out_list <- list(na.omit(unique(x_main_an_hp_drugs_all$primary_key)))
   names(out_list) <- paste(unique(x_main_an_hp_drugs_all$ICD9),collapse = "-")
   return(out_list)
 }
 
-#Ginen a set of drugbank IDs this function returns a list of the available LINCS L1000 signatures generated using this drug as a perturbation.
+#Given a set of drugbank IDs this function returns a list of the available LINCS L1000 signatures generated using this drug as a perturbation.
 
-
+get_LINCS_profiles_from_DB_IDs <- function(x_all_lincs,vec_ids){
+  x_all_lincs <- x_all_lincs[x_all_lincs$primary_key %in% vec_ids,]
+  x_all_lincs <- unique(x_all_lincs[,c("primary_key",c("sig_id"))])
+  x_all_lincs <- split(x_all_lincs,as.factor(x_all_lincs$primary_key))
+  return(x_all_lincs)
+}
