@@ -1,0 +1,63 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+options(stringsAsFactors = FALSE)
+```
+
+```{r}
+library(tibble)
+library(dplyr)
+```
+
+
+```{r}
+#Mapping drugbank to rxnorm from unichem API.
+
+res = GET("https://www.ebi.ac.uk/unichem/rest/mapping/2/47")
+rawToChar(res$content)
+data = fromJSON(rawToChar(res$content))
+View(data)
+```
+
+#Using the RxNorm API to mapt RXCUI to other identifiers. We could use this API but the RXCUI data is already available in the drugbank dataset.
+
+```{r}
+base_URL <- "https://rxnav.nlm.nih.gov/REST/"
+base_URL_json <- "https://rxnav.nlm.nih.gov/REST/rxcui.json?"
+"https://rxnav.nlm.nih.gov/REST/rxcui/7052/filter.json?propName=DRUGBANK"
+
+https://rxnav.nlm.nih.gov/REST/rxcui?idtype=DRUGBANK&id=7052
+
+https://rxnav.nlm.nih.gov/REST/rxcui.json?idtype=DRUGBANK&id=0009-7529
+
+Drugs_All <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Drugs_All_Can_Smiles.Rda"))
+Drugs_All$RxCUI
+```
+
+
+
+```{r}
+Medi_An_HP_Set <- read.csv(file = "/media/data/jaume/MEDI_AN/Data/MEDI_01212013_HPS.csv",sep = ",")
+Medi_An_HP_Set$RXCUI_IN <- as.character(Medi_An_HP_Set$RXCUI_IN)
+length(unique(Medi_An_HP_Set$RXCUI_IN)) #Medi_An_HP includes 2139 unique RXCUI_IN drug ids. 
+
+Drugs_All <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/Drugs_All_Can_Smiles.Rda"))
+length(unique(Drugs_All$RxCUI)) #Drugbank includes 4869 unique RXCUI ids.
+
+length(intersect(Medi_An_HP_Set$RXCUI_IN,Drugs_All$RxCUI)) #Medi_An and drugbank share 1429 RxCUI
+colnames(Medi_An_HP_Set)[1] <- "RxCUI"
+
+
+Drugs_All_DB_Medi <- left_join(Drugs_All,Medi_An_HP_Set,by = "RxCUI",na_matches = "never")
+save(file = "/media/data/jaume/MEDI_AN/Data/Drugs_All_BD_Medi.Rda",Drugs_All_DB_Medi)
+Drugs_All_DB_Medi <- get(load(file = "/media/data/jaume/MEDI_AN/Data/Drugs_All_BD_Medi.Rda"))
+
+Maid_An_HP_Drugs_All <- left_join(Medi_An_HP_Set,Drugs_All,by = "RxCUI",na_matches = "never")
+save(file = "/media/data/jaume/MEDI_AN/Data/Maid_An_HP_Drugs_All.Rda",Maid_An_HP_Drugs_All)
+Maid_An_HP_Drugs_All <- get(load(file = "/media/data/jaume/MEDI_AN/Data/Maid_An_HP_Drugs_All.Rda"))
+```
+
+
