@@ -80,11 +80,5 @@ LINCS_Sitnature_To_DB <- unique(All_LINCS[,c("sig_id","pert_iname","primary_key"
 LINCS_Sitnature_To_DB <- LINCS_Sitnature_To_DB[!is.na(LINCS_Sitnature_To_DB$primary_key),]
 View(LINCS_Sitnature_To_DB)
 mean(table(LINCS_Sitnature_To_DB$primary_key))
-
-
-
-
-
-
 ```
 
