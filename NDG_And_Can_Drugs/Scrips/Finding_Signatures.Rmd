@@ -1,0 +1,110 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Finding Signatures for drugs indicated for the treatment of the included disorders.
+
+```{r}
+rm(list = ls())
+options(stringsAsFactors = F)
+gc()
+```
+
+```{r}
+library(tibble)
+library(dplyr)
+```
+
+```{r}
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+```
+
+```{r}
+#MEDication indication files can be found at the following website: https://www.vumc.org/cpm/cpm-blog/medi-ensemble-medication-indication-resource-0
+
+#Loading Medi AN high precission set data.
+
+Medi_An_HP_Drugs_All <- get(load(file = "/media/data/jaume/MEDI_AN/Data/Maid_An_HP_Drugs_All.Rda"))
+View(Medi_An_HP_Drugs_All)
+
+#Drugs_All_DB_Medi <- get(load(file = "/media/data/jaume/MEDI_AN/Data/Drugs_All_BD_Medi.Rda"))
+
+#Loading LINCS metadata.
+
+All_LINCS <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/All_LINCS_with_DB.Rda"))
+
+#Produce list of ICD code IDs for each included disorder.
+
+AD <- c("331.0$")
+PD <- c("332$")
+ALL <- c("204.0$|204.00$")
+AML <- c("205.0$|205.00$")
+BLCA <- c("188$|188.9$|239.4$")
+BRCA <- c("174.9$|233.0")
+BRNCA <- c("191$|191.9")
+CERV <- c("180.9")
+CLL <- c("204.1$")
+CML <- c("205.1$")
+CRCA <- c("153.9$")
+HANC <- c("195.0$")
+KDNCA <- c("189.0$")
+LGCA <- c("162.9$")
+LIVCA <- c("155.0$|155.2$")
+OVCA <- c("183.0$")
+PACA <- c("157.9$")
+PRCA <- c("185$")
+SKCM <- c("172.9$")
+STCA <- c("151.9$")
+THCA <- c("193$")
+LYMPH <- c("202.80$|202.0$|200.4$|202.7$|202.70$|200.2$|200.20$|201.9$|201.90$|201$")
+
+#Testing
+
+View(Medi_An_HP_Drugs_All[Medi_An_HP_Drugs_All$ICD9 == "191",])
+
+list_of_dis_IDs <- list(AD,PD,ALL,AML,BLCA,BRCA,BRNCA,CERV,CLL,CML,CRCA,HANC,KDNCA,LGCA,LIVCA,OVCA,PACA,PRCA,SKCM,STCA,THCA,LYMPH)
+names(list_of_dis_IDs) <- c("AD","PD","ALL","AML","BLCA","BRCA","BRNCA","CERV","CLL","CML","CRCA","HANC","KDNCA","LGCA","LIVCA","OVCA","PACA","PRCA","SKCM","STCA","THCA","LYMPH")
+
+#Select indicated drugs for each disorder.
+
+drugs_for_each_disorder <- lapply(list_of_dis_IDs,from_ICD_to_Indicated_DB,Maid_An_HP_Drugs_All)
+drugs_for_each_disorder <- lapply(drugs_for_each_disorder,function(x) unique(as.character(unlist(x))))
+drugs_for_each_disorder <- lapply(drugs_for_each_disorder,unique)
+df_indications <- data.frame(rep(names(drugs_for_each_disorder),unlist(lapply(drugs_for_each_disorder,length))),unname(unlist(drugs_for_each_disorder)))
+colnames(df_indications) <- c("Disorder","Drug")
+
+#Number of indications identified in Mede-An high precission set.
+
+nrow(df_indications)
+
+#Number of unique drugs included.
+
+length(unique(df_indications$Drug))
+
+#Indicated drugs with available level 5 gene expression signatures in LINCS L1000. This includes the  small compound ID to DB mapping. (https://maayanlab.cloud/L1000FWD/download_page) was obtained using the drug metadata file provided in the previous website and the drugbank lincs small molecule id mapping though the uniquem API.
+
+All_LINCS$DB_IDS_Multi <- coalesce(All_LINCS$DB_IDS,All_LINCS$primary_key)
+
+#Filtering all lincs
+
+All_LINCS_filt <- All_LINCS[,c("DB_IDS","pert_id")]
+All_LINCS_filt <- All_LINCS_filt[!is.na(All_LINCS_filt$DB_IDS),]
+All_LINCS_filt <- unique(All_LINCS_filt)
+All_LINCS_filt <- All_LINCS_filt[All_LINCS_filt$DB_IDS %in% unique(df_indications$Drug),]
+unique(All_LINCS_filt$DB_IDS)
+Perturbations_Unique <- unique(All_LINCS_filt$pert_id)
+
+#Retrieving the consensus signatures from the datafrmae and seving the data slice.
+
+  
+consensus_Signatures <- get(load(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda"))
+consensus_Signatures_Filt <- consensus_Signatures[,Perturbations_Unique]
+consensus_Signatures_Filt <- as.data.frame(as.matrix(consensus_Signatures_Filt))
+lapply(consensus_Signatures_Filt,class)
+save(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda",consensus_Signatures_Filt)
+
+
+consensus_Signatures_Filt <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda"))
+```
