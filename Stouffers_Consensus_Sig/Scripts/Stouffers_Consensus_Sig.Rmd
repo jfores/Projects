@@ -1,0 +1,108 @@
+---
+title: "Untitled"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+options(stringsAsFactors = F)
+```
+
+```{r cars}
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+```
+
+We will generate a unique consensus signature for each kind of perturbation employed by LINCS.
+
+```{r pressure, echo=FALSE}
+#https://think-lab.github.io/d/43/ It is possible to select only the gold signatures according to this site.
+
+All_LINCS <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/All_LINCS_with_DB.Rda"))
+View(All_LINCS)
+unique(All_LINCS$Phase)
+All_LINCS_to_Stouff <- All_LINCS[,c("sig_id","pert_id","Phase")]
+All_LINCS_to_Stouff <- unique(All_LINCS_to_Stouff)
+All_LINCS_to_Stouff_spl <- split(All_LINCS_to_Stouff,as.factor(All_LINCS_to_Stouff$pert_id))
+length(All_LINCS_to_Stouff_spl) #We have information about 52477 perturbations. 
+mean(unlist(lapply(All_LINCS_to_Stouff_spl,nrow))) #Each perturbation was associated to a mean of 11.27 signatures.
+max(unlist(lapply(All_LINCS_to_Stouff_spl,nrow))) #Max 20835
+min(unlist(lapply(All_LINCS_to_Stouff_spl,nrow))) #Min 1
+All_LINCS_to_Stouff_spl  <- All_LINCS_to_Stouff_spl[-which.max(unlist(lapply(All_LINCS_to_Stouff_spl,nrow)))]
+
+phase_I_path <- "/media/data/jaume/LINCS_Raw/PhaseI/GSE92742_Broad_LINCS_Level5_COMPZ.MODZ_n473647x12328.gctx"
+phase_II_path <- "/media/data/jaume/LINCS_Raw/PhaseII/GSE70138_Broad_LINCS_Level5_COMPZ_n118050x12328_2017-03-06.gctx"
+```
+
+```{r}
+# This is the operation that we need.
+
+a <- c(1,2,3,4)
+b <- c(1,2,3,4)
+df <- cbind(a,b)
+d <- c(1,2)
+t(t(df) * d)
+
+# All_LINCS_to_Stouff_spl
+
+All_LINCS_to_Stouff_spl[[1]]
+
+df_out <- data.frame(matrix(NA,nrow = nrow(retrieve_signatures(names(All_LINCS_to_Stouff_spl)[1],phase_I_path,phase_II_path,All_LINCS_to_Stouff_spl)),ncol = length(All_LINCS_to_Stouff_spl)))
+
+
+rownames(df_out) <- rownames(retrieve_signatures(names(All_LINCS_to_Stouff_spl)[1],phase_I_path,phase_II_path,All_LINCS_to_Stouff_spl))
+colnames(df_out) <- names(All_LINCS_to_Stouff_spl)
+
+df_out <- get(load(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda" ))
+df_out[1:10,51900:52000,]
+which(is.na(df_out[1,]))
+
+#length(All_LINCS_to_Stouff_spl)
+for(i in 44001:length(All_LINCS_to_Stouff_spl)){
+  print(i)
+  temp_mat  <- retrieve_signatures(names(All_LINCS_to_Stouff_spl)[i],phase_I_path,phase_II_path,All_LINCS_to_Stouff_spl)
+  df_out[,i] <- compute_Stouffers_Consensus(temp_mat)
+  if(i%%1000 == 0){
+    print("Saving data...")
+    save(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda",df_out)
+  }
+}
+
+1%%1000
+
+#https://bioconductor.org/packages/release/bioc/vignettes/cmapR/inst/doc/tutorial.html
+#https://think-lab.github.io/d/43/
+#https://en.wikipedia.org/wiki/Fisher%27s_method#Relation_to_Stouffer.27s_Z-score_method
+#https://think-lab.github.io/d/43/#3
+
+mod(1004,1000)
+
+#Some testing.
+
+temp_mat  <- retrieve_signatures(names(All_LINCS_to_Stouff_spl)[1],phase_I_path,phase_II_path,All_LINCS_to_Stouff_spl)
+test_sig <- compute_Stouffers_Consensus(temp_mat)
+
+temp_mat_2 <- retrieve_signatures(names(All_LINCS_to_Stouff_spl)[100],phase_I_path,phase_II_path,All_LINCS_to_Stouff_spl)
+test_sig_2 <- compute_Stouffers_Consensus(temp_mat_2)
+table(names(test_sig) == names(test_sig_2))
+length(unique(colnames(df_out)))
+table(is.na(df_out[1,]))
+df_out[,1]
+
+df_out[1:10,1:100]
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+
+test_out <- compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F])
+
+compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F]) == compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6),drop = F])
+hist(compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F]),breaks = 100)
+hist(compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6),drop = F]),breaks = 100)
+
+#Generate signatures for all perturbations.
+
+
+
+#View(bien_tasty)
+#dim(bien_tasty)
+```
+
