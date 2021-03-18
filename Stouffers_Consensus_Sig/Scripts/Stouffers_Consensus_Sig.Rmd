@@ -68,6 +68,9 @@ for(i in 44001:length(All_LINCS_to_Stouff_spl)){
   }
 }
 
+save(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda",df_out)
+
+dim(df_out)
 1%%1000
 
 #https://bioconductor.org/packages/release/bioc/vignettes/cmapR/inst/doc/tutorial.html
@@ -87,22 +90,14 @@ test_sig_2 <- compute_Stouffers_Consensus(temp_mat_2)
 table(names(test_sig) == names(test_sig_2))
 length(unique(colnames(df_out)))
 table(is.na(df_out[1,]))
-df_out[,1]
 
+df_out[,1]
 df_out[1:10,1:100]
-source("/home/jaume/Projects/Functions/DrugAnalysis.R")
 
 test_out <- compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F])
 
 compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F]) == compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6),drop = F])
 hist(compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6,7),drop = F]),breaks = 100)
 hist(compute_Stouffers_Consensus(test_mat[,c(1,2,3,4,5,6),drop = F]),breaks = 100)
-
-#Generate signatures for all perturbations.
-
-
-
-#View(bien_tasty)
-#dim(bien_tasty)
 ```
 
