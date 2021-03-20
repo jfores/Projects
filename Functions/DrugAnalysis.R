@@ -82,5 +82,17 @@ compute_Stouffers_Consensus <- function(exp_mat){
   }
 }
 
+##########################
+##Computing correlations##
+##########################
+
+compute_correlations <- function(x,y){
+  intersected_rows <- intersect(rownames(x),rownames(y))
+  x <- x[intersected_rows,]
+  y <- y[intersected_rows,]
+  cor_values <- apply(y,2,function(x,y) cor.test(x,y,method = "spearman")$estimate,x$zval)
+  p_values <- apply(y,2,function(x,y) cor.test(x,y,method = "spearman")$p.value,x$zval)
+  return(list(cor_values,p_values))
+}
 
 

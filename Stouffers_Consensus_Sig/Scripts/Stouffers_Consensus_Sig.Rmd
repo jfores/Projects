@@ -69,6 +69,7 @@ for(i in 44001:length(All_LINCS_to_Stouff_spl)){
 }
 
 save(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda",df_out)
+df_out <- get(load(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda"))
 
 dim(df_out)
 1%%1000
