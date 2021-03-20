@@ -1,0 +1,241 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+rm(list = ls())
+options(stringsAsFactors = F)
+```
+
+```{r}
+#Retrieving indicated drug signatures.
+
+consensus_Signatures_Filt <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda"))
+
+#Reading DEPs from excel.
+
+install.packages("xlsx")
+install.packages("openxlsx")
+
+library(xlsx)
+library(openxlsx)
+
+#Format differentila gene expression meta-analysis output.
+
+transform_df <- function(x){
+  rownames(x) <- x[,2]
+  x$zval <- as.numeric(x$zval)
+  x$mu.hat <- as.numeric(x$mu.hat)
+  x$mu.var <- as.numeric(x$mu.var)
+  x <- x[,c(1,2,8)]
+  return(x)
+}
+
+#Loading data from xlsx file.
+
+AD <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 1)
+PD <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 6)
+ALL <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 8)
+AML <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 9)
+BLCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 10)
+BRCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 11)
+BRNCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 12)
+CERV <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 13)
+CHLCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 14)
+CLL <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 15)
+CML <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 16)
+CRCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 17)
+DLBCL <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 18)
+FLYMPH <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 19)
+HANC <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 20)
+KDNCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 21)
+LGCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 22)
+LIVCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 23)
+OVCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 24)
+PACA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 25)
+PRCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 26)
+SKCM <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 27)
+STCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 28)
+THCA <- read.xlsx("/home/jaume/Projects/NDG_And_Can_Drugs/Data/Supplementary_Appendix_2.xlsx",sheet = 29)
+
+
+list_disorders <- list(AD,PD,ALL,AML,BLCA,BRCA,BRNCA,CERV,CHLCA,CLL,CML,CRCA,DLBCL,FLYMPH,HANC,KDNCA,LGCA,LIVCA,OVCA,PACA,PRCA,SKCM,STCA,THCA)
+list_disorders <- lapply(list_disorders,transform_df)
+names(list_disorders) <- c("AD","PD","ALL","AML","BLCA","BRCA","BRNCA","CERV","CHLCA","CLL","CML","CRCA","DLBCL","FLYMPH","ANC","KDNCA","LGCA","LIVCA","OVCA","PACA","PRCA","SKCM","STCA","THCA")
+save(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Data/DEP_All_Dis.Rda",list_disorders)
+```
+
+Computing correlations.
+
+```{r}
+list_disorders <- get(load(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Data/DEP_All_Dis.Rda"))
+
+consensus_Signatures_Filt <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda"))
+
+
+test <- list_disorders[[1]]
+intersected_rows <- intersect(rownames(test),rownames(consensus_Signatures_Filt))
+test <- test[intersected_rows,]
+cons_test <- consensus_Signatures_Filt[intersected_rows,]
+dim(cons_test)
+dim(test)
+colnames(test)
+
+temptemp <- cor.test(test$zval,cons_test$`BRD-K43389675`)
+temptemp$p.value
+
+cor_values <- apply(cons_test,2,function(x,y) cor.test(x,y,method = "spearman")$estimate,test$zval)
+View(cor_values)
+p_values <- apply(cons_test,2,function(x,y) cor.test(x,y,method = "spearman")$p.value,test$zval)
+
+help("cor.test")
+
+temp <- cor(test[,"zval",drop = F],cons_test,method = "spearman")
+View(t(temp))
+
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+
+all_cors <- lapply(list_disorders,compute_correlations,consensus_Signatures_Filt)
+all_correlations <- do.call("rbind",lapply(all_cors,function(x) x[[1]]))
+all_correlations <- t(all_correlations)
+View(all_correlations)
+all_pvalues <-  do.call("rbind",lapply(all_cors,function(x) x[[2]]))
+all_pvalues <- t(all_pvalues)
+```
+
+Melting data and generating tables.
+
+```{r}
+library(reshape2)
+cor_melted <- melt(all_correlations)
+cor_melted$key <- paste(cor_melted$Var1,cor_melted$Var2,sep="-")
+
+pval_melted <- melt(all_pvalues)
+pval_melted$key <-  paste(pval_melted$Var1,pval_melted$Var2,sep="-")
+
+melted_data <- left_join(cor_melted,pval_melted,by ="key")
+View(head(melted_data))
+colnames(melted_data) <- c("pert_id","disorder","Spearman_cor","key","pert_id_2","disorder_2","p_val")
+colnames(melted_data)
+melted_data$p_adj <- p.adjust(melted_data$p_val,method = "fdr")
+View(melted_data)
+
+df_indications <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Disease_Drug_Indications.Rda"))
+
+df_indications_splitted <- split(df_indications,as.factor(df_indications$Drug))
+df_temp_drug_indi <- lapply(df_indications_splitted,function(x) paste(x[,1],collapse = "/"))
+df_drug_disorder <- data.frame(names(df_temp_drug_indi),unlist(df_temp_drug_indi))
+colnames(df_drug_disorder) <- c("DB_IDS","Indicated Disorders")
+
+All_LINCS <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/All_LINCS_with_DB.Rda"))
+colnames(All_LINCS)
+All_LINCS_filt <- unique(All_LINCS[,c("pert_id","DB_IDS","pert_iname")])
+
+joined_data_one <- left_join(df_drug_disorder,All_LINCS_filt,by = "DB_IDS")
+joined_data_one <- joined_data_one[!is.na(joined_data_one$pert_id),]
+dim(joined_data_one)
+
+joined_data_two <- left_join(melted_data,joined_data_one,by = "pert_id")
+View(joined_data_two)
+
+#Getting neurodegenerative disorder drugs showing negative correlations with cancers.
+
+indicated_for_AD_and_PD <- joined_data_two[grepl("AD|PD",joined_data_two$`Indicated Disorders`),]
+
+#Negative correlations lower than 0.2.
+
+neg_02 <- indicated_for_AD_and_PD[indicated_for_AD_and_PD$Spearman_cor < -0.2,]
+neg_02 <- neg_02[!grepl("AD|PD",neg_02$disorder),]
+neg_02_split <- split(neg_02,as.factor(neg_02$pert_iname))
+selected_drugs <- unique(neg_02$pert_id)
+#There are 3 drugs indicated for the treatment of neurodegenerative disorders showing correlations lower than -0.2 with the differential gene expression profiles of at least one of the tested cancers. 
+
+length(neg_02_split)
+
+neg_02_split[[1]] #Carbidopa
+neg_02_split[[2]] #Donepezil
+neg_02_split[[3]] #Galantamine
+neg_02_split[[4]] #levodopa
+neg_02_split[[5]] #selegiline
+
+
+#Postive correlations higher than 0.2.
+
+pos_02 <- indicated_for_AD_and_PD[indicated_for_AD_and_PD$Spearman_cor > 0.2,]
+pos_02 <- pos_02[!grepl("AD|PD",pos_02$disorder),]
+
+selected_drugs <- c(selected_drugs,unique(pos_02$pert_id))
+
+pos_02_split <- split(pos_02,as.factor(pos_02$pert_iname))
+
+#There are 3 drugs indicated for the treatment of neurodegenerative disorders showing correlations lower than -0.2 with the differential gene expression profiles of at least one of the tested cancers. 
+
+length(pos_02_split)
+
+pos_02_split[[1]] #entacapone
+pos_02_split[[3]] #pergolide
+pos_02_split[[5]] #trihexyphenidyl
+pos_02_split[[6]] #valproic-acid
+
+#Getting cancer disorder drugs showing negative correlations with neurodegeneratives
+
+
+indicated_for_can <- joined_data_two[!grepl("AD|PD",joined_data_two$`Indicated Disorders`),]
+
+#Negative correlations lower than 0.2.
+
+neg_02 <- indicated_for_can[indicated_for_can$Spearman_cor < -0.2,]
+neg_02 <- neg_02[grepl("AD|PD",neg_02$disorder),]
+
+selected_drugs <- c(selected_drugs,unique(neg_02$pert_id))
+
+View(neg_02)
+
+#Postive correlations higher than 0.2.
+
+pos_02 <- indicated_for_can[indicated_for_can$Spearman_cor > 0.2,]
+pos_02 <- pos_02[grepl("AD|PD",pos_02$disorder),]
+selected_drugs <- c(selected_drugs,unique(pos_02$pert_id))
+```
+
+Selecting the drugs identified in this step and plotting Complex Heatmap.
+
+```{r}
+save(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/selected_drugs.Rda",selected_drugs)
+selected_drugs <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/selected_drugs.Rda"))
+```
+
+Plotting data.
+
+```{r}
+Heatmap(all_correlations)
+library(ComplexHeatmap)
+correlations_to_plot <- all_correlations[selected_drugs,]
+All_LINCS_filt_2 <- All_LINCS[All_LINCS$pert_id %in% selected_drugs,]
+colnames(All_LINCS_filt_2)
+All_LINCS_filt_2 <- All_LINCS_filt_2[,c("pert_id","pert_iname")]
+All_LINCS_filt_2 <- unique(All_LINCS_filt_2)
+All_LINCS_filt_2 <- data.frame(All_LINCS_filt_2)
+rownames(All_LINCS_filt_2) <- All_LINCS_filt_2$pert_id
+All_LINCS_filt_2 <- All_LINCS_filt_2[selected_drugs,]
+rownames(correlations_to_plot) <- All_LINCS_filt_2$pert_iname
+
+indicated_data <- joined_data_two[joined_data_two$pert_iname %in% rownames(correlations_to_plot),]
+colnames(indicated_data)
+indicated_data <- indicated_data[,c("pert_iname","Indicated Disorders")]
+indicated_data <- unique(indicated_data)
+rownames(indicated_data) <- indicated_data$pert_iname
+indicated_data <- indicated_data[rownames(correlations_to_plot),]
+
+name <- rownames(correlations_to_plot)
+name_form_1 <- paste(toupper(substr(name, 1, 1)), substr(name, 2, nchar(name)), sep="")
+rownames(correlations_to_plot) <- paste(name_form_1," (", indicated_data$`Indicated Disorders`,")",sep = "")
+
+pdf("/home/jaume/Projects/NDG_And_Can_Drugs/Results/Drugs_Associated.pdf")
+Heatmap(correlations_to_plot)
+dev.off()
+```
+

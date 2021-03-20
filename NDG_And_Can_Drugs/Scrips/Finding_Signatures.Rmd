@@ -74,6 +74,8 @@ drugs_for_each_disorder <- lapply(drugs_for_each_disorder,function(x) unique(as.
 drugs_for_each_disorder <- lapply(drugs_for_each_disorder,unique)
 df_indications <- data.frame(rep(names(drugs_for_each_disorder),unlist(lapply(drugs_for_each_disorder,length))),unname(unlist(drugs_for_each_disorder)))
 colnames(df_indications) <- c("Disorder","Drug")
+save(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Disease_Drug_Indications.Rda",df_indications)
+df_indications <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Disease_Drug_Indications.Rda"))
 
 #Number of indications identified in Mede-An high precission set.
 
