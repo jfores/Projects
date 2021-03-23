@@ -96,3 +96,40 @@ compute_correlations <- function(x,y){
 }
 
 
+#########################
+##Enrichment Functions###
+#########################
+
+#Enrich multiple signatures.
+
+enrich_clusterprof_mult <- function(x,format_rownames = T,num_chars = 30){
+  require(clusterProfiler)
+  c2_canonical <- read.gmt("/home/jaume/Projects/mol_sig/c2.cp.v7.2.entrez.gmt")
+  if(format_rownames){
+    c2_canonical$term <- gsub("_", " ",gsub("^ST","(S)",gsub("^WP","(W)",gsub("^PID","(P)",gsub("^NABA","(N)",gsub("^BIOCARTA","(B)",gsub("^KEGG","(K)",gsub("^REACTOME","(R)",c2_canonical$term))))))))
+    c2_canonical$term[nchar(as.character(c2_canonical$term)) > num_chars] <- paste(substr(c2_canonical$term[nchar(as.character(c2_canonical$term)) > num_chars],1,30),"...")
+    
+  }
+  list_out <- list()
+  print(ncol(x))
+  for(i in 1:ncol(x)){
+    print(i)
+    temp_prof <- x[,i]
+    names(temp_prof) <- rownames(x)
+    temp_prof <- temp_prof[order(temp_prof,decreasing = T)]
+    list_out[[i]] <- GSEA(temp_prof,TERM2GENE = c2_canonical)
+  }
+  names(list_out) <- colnames(x)
+  return(list_out)
+}
+
+#Filter prior to ridgeplot.
+
+filter_top_enrich_to_plot <- function(x,n_up = 20,n_down = 20){
+  top_up <- which(x@result$NES > 0)[1:20]
+  top_down <- which(x@result$NES < 0)[1:20]
+  all  <- c(top_up,top_down)
+  x@result <- x@result[all,]
+  return(x)
+}
+
