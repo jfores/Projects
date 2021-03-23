@@ -161,7 +161,6 @@ neg_02_split[[3]] #Galantamine
 neg_02_split[[4]] #levodopa
 neg_02_split[[5]] #selegiline
 
-
 #Postive correlations higher than 0.2.
 
 pos_02 <- indicated_for_AD_and_PD[indicated_for_AD_and_PD$Spearman_cor > 0.2,]
@@ -181,7 +180,6 @@ pos_02_split[[5]] #trihexyphenidyl
 pos_02_split[[6]] #valproic-acid
 
 #Getting cancer disorder drugs showing negative correlations with neurodegeneratives
-
 
 indicated_for_can <- joined_data_two[!grepl("AD|PD",joined_data_two$`Indicated Disorders`),]
 

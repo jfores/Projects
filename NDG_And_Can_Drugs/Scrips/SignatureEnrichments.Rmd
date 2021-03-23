@@ -1,0 +1,257 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+options(stringsAsFactors = F)
+```
+
+```{r}
+#Installing cluster profiler.
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    #install.packages("BiocManager")
+
+#BiocManager::install("clusterProfiler")
+```
+
+```{r}
+library(clusterProfiler)
+```
+
+Loading selected drugs.
+
+```{r}
+selected_drugs <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/selected_drugs.Rda"))
+```
+
+Loading drug profiles.
+
+```{r}
+consensus_Signatures_Filt <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda"))
+```
+
+```{r}
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+
+consensus_Signatures_Filt <- consensus_Signatures_Filt[,selected_drugs]
+
+#Enrichment analysis of selected signatures.
+
+profile_enrichment <- enrich_clusterprof_mult(consensus_Signatures_Filt,num_chars = 35)
+names(profile_enrichment)
+save(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Enrichment_Of_Significant_Sigs.Rda",profile_enrichment)
+profile_enrichment <- get(load(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Enrichment_Of_Significant_Sigs.Rda"))
+```
+
+
+
+```{r}
+source("/home/jaume/Projects/Functions/DrugAnalysis.R")
+
+All_LINCS <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/All_LINCS_with_DB.Rda"))
+All_LINCS_filt <- All_LINCS[All_LINCS$pert_id %in% selected_drugs,]
+All_LINCS_filt <- unique(All_LINCS_filt[,c("pert_id","DB_IDS","pert_iname")])
+All_LINCS_filt_df <- data.frame(All_LINCS_filt)
+rownames(All_LINCS_filt_df) <- All_LINCS_filt_df$pert_id
+
+#Saving all excels.
+
+
+dir_to_save <- "/home/jaume/Projects/NDG_And_Can_Drugs/Results/All_Asso_Drug_Enrich"
+for(i in 1:length(profile_enrichment)){
+  pert_id <- names(profile_enrichment)[i]
+  print(pert_id)
+  drug_name <- All_LINCS_filt_df[pert_id,3]
+  file_to_save <- paste(dir_to_save,"/",pert_id,drug_name,".xlsx",sep = "")
+  write.xlsx(file = file_to_save,profile_enrichment[[i]]@result)
+
+}
+
+read.xlsx(file_to_save) #Files were successfully written.
+
+
+#Carbidopa enrichment.
+
+Carbidopa_Enrich <- profile_enrichment$`BRD-K78712176`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Carbidopa_Enrich.xlsx",Carbidopa_Enrich@result)
+View(Carbidopa_Enrich@result)
+
+Carbidopa_To_Plot <- filter_top_enrich_to_plot(Carbidopa_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Carbidopa_ridge.pdf" )
+ridgeplot(Carbidopa_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+
+#Donepezil enrichment. 
+
+Donepezil_Enrich <- profile_enrichment$`BRD-A49160188`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Donepezil_Enrich.xlsx",Donepezil_Enrich@result)
+View(Donepezil_Enrich@result)
+
+Donepezil_To_Plot <- filter_top_enrich_to_plot(Donepezil_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Donepezil_ridge.pdf" )
+ridgeplot(Donepezil_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+  
+#Galantamine enrichment. 
+
+Galantamine_Enrich <- profile_enrichment$`BRD-K49481516`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Galantamine_Enrich.xlsx",Galantamine_Enrich@result)
+View(Galantamine_Enrich@result)
+
+Galantamine_To_Plot <- filter_top_enrich_to_plot(Galantamine_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Galantamine_ridge.pdf" )
+ridgeplot(Galantamine_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+  
+  
+#Selegiline enrichment. 
+
+Selegiline_Enrich <- profile_enrichment$`BRD-K86434416`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Selegiline_Enrich.xlsx",Selegiline_Enrich@result)
+View(Selegiline_Enrich@result)
+
+Selegiline_To_Plot <- filter_top_enrich_to_plot(Selegiline_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Selegiline_ridge.pdf" )
+ridgeplot(Selegiline_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+  
+#Entacapone enrichment. 
+
+Entacapone_Enrich <- profile_enrichment$`BRD-K83636919`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Entacapone_Enrich.xlsx",Entacapone_Enrich@result)
+View(Entacapone_Enrich@result)
+
+Entacapone_To_Plot <- filter_top_enrich_to_plot(Entacapone_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Entacapone_ridge.pdf" )
+ridgeplot(Entacapone_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+  
+
+#ValproicAcid enrichment. 
+
+ValproicAcid_Enrich <- profile_enrichment$`BRD-K41260949`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/ValproicAcid_Enrich.xlsx",ValproicAcid_Enrich@result)
+View(ValproicAcid_Enrich@result)
+
+ValproicAcid_To_Plot <- filter_top_enrich_to_plot(ValproicAcid_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/ValproicAcid_ridge.pdf" )
+ridgeplot(ValproicAcid_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+  
+#Exemestane enrichment. 
+
+Exemestane_Enrich <- profile_enrichment$`BRD-K33425534`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Exemestane_Enrich.xlsx",Exemestane_Enrich@result)
+View(Exemestane_Enrich@result)
+
+Exemestane_To_Plot <- filter_top_enrich_to_plot(Exemestane_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Exemestane_ridge.pdf" )
+ridgeplot(Exemestane_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#Megestrol enrichment. 
+
+Megestrol_Enrich <- profile_enrichment$`BRD-K19507340`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Megestrol_Enrich.xlsx",Megestrol_Enrich@result)
+View(Megestrol_Enrich@result)
+
+Megestrol_To_Plot <- filter_top_enrich_to_plot(Megestrol_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Megestrol_ridge.pdf" )
+ridgeplot(Megestrol_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#Thiotepa enrichment. 
+
+Thiotepa_Enrich <- profile_enrichment$`BRD-K09631521`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Thiotepa_Enrich.xlsx",Thiotepa_Enrich@result)
+View(Thiotepa_Enrich@result)
+
+Thiotepa_To_Plot <- filter_top_enrich_to_plot(Thiotepa_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Thiotepa_ridge.pdf" )
+ridgeplot(Thiotepa_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#Tretinoin enrichment. 
+
+Tretinoin_Enrich <- profile_enrichment$`BRD-K71879491`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Tretinoin_Enrich.xlsx",Tretinoin_Enrich@result)
+View(Tretinoin_Enrich@result)
+
+Tretinoin_To_Plot <- filter_top_enrich_to_plot(Tretinoin_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Tretinoin_ridge.pdf" )
+ridgeplot(Tretinoin_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#Estradiol enrichment. 
+
+Estradiol_Enrich <- profile_enrichment$`BRD-K18910433`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Estradiol_Enrich.xlsx",Estradiol_Enrich@result)
+View(Estradiol_Enrich@result)
+
+Estradiol_To_Plot <- filter_top_enrich_to_plot(Estradiol_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Estradiol_ridge.pdf" )
+ridgeplot(Estradiol_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+
+#Medroxyprogesterone enrichment. 
+
+Medroxyprogesterone_Enrich <- profile_enrichment$`BRD-K82216340`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Medroxyprogesterone_Enrich.xlsx",Medroxyprogesterone_Enrich@result)
+View(Medroxyprogesterone_Enrich@result)
+
+Medroxyprogesterone_To_Plot <- filter_top_enrich_to_plot(Medroxyprogesterone_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Medroxyprogesterone_ridge.pdf" )
+ridgeplot(Medroxyprogesterone_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#temozolomide enrichment. 
+
+temozolomide_Enrich <- profile_enrichment$`BRD-K32107296`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/temozolomide_Enrich.xlsx",temozolomide_Enrich@result)
+View(temozolomide_Enrich@result)
+
+temozolomide_To_Plot <- filter_top_enrich_to_plot(temozolomide_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/temozolomide_ridge.pdf" )
+ridgeplot(temozolomide_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+
+#testosterone enrichment. 
+
+testosterone_Enrich <- profile_enrichment$`BRD-K84036904`
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/testosterone_Enrich.xlsx",testosterone_Enrich@result)
+View(testosterone_Enrich@result)
+
+testosterone_To_Plot <- filter_top_enrich_to_plot(testosterone_Enrich)
+pdf(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/testosterone_ridge.pdf" )
+ridgeplot(testosterone_To_Plot,showCategory = 40) + theme(axis.text.y = element_text(size = 10,hjust = 0))
+dev.off()
+```
+
+Drug enrichment heatmap.
+
+```{r}
+pathways_ds <- unique(unlist(lapply(profile_enrichment,function(x) rownames(x@result))))
+length(pathways_ds)
+df_NES <- data.frame(matrix(ncol = length(profile_enrichment),nrow = length(pathways_ds)))
+rownames(df_NES) <- pathways_ds
+colnames(df_NES) <- names(profile_enrichment)
+head(df_NES)
+for(i in 1:length(profile_enrichment)){
+  df_NES[profile_enrichment[[i]]@result$ID,i] <- profile_enrichment[[i]]@result$NES
+}
+library(ComplexHeatmap)
+
+df_NES[is.na(df_NES)] <- 0
+
+#Removing pathways with value 0 in more than 80% of drugs.
+df_NES_filt <- df_NES[!rowSums(df_NES == 0) > round(30*ncol(df_NES)/100),]
+Heatmap(df_NES_filt,row_names_gp = gpar(fontsize = 5))
+
+
+```
+
