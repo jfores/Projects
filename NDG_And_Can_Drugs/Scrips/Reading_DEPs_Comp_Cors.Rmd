@@ -74,7 +74,7 @@ Computing correlations.
 list_disorders <- get(load(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Data/DEP_All_Dis.Rda"))
 
 consensus_Signatures_Filt <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Pert_Indications.Rda"))
-
+dim(consensus_Signatures_Filt)
 
 test <- list_disorders[[1]]
 intersected_rows <- intersect(rownames(test),rownames(consensus_Signatures_Filt))
@@ -98,6 +98,7 @@ View(t(temp))
 
 source("/home/jaume/Projects/Functions/DrugAnalysis.R")
 
+dim(consensus_Signatures_Filt)
 all_cors <- lapply(list_disorders,compute_correlations,consensus_Signatures_Filt)
 all_correlations <- do.call("rbind",lapply(all_cors,function(x) x[[1]]))
 all_correlations <- t(all_correlations)

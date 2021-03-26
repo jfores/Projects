@@ -98,9 +98,24 @@ All_LINCS_filt <- All_LINCS_filt[All_LINCS_filt$DB_IDS %in% unique(df_indication
 unique(All_LINCS_filt$DB_IDS)
 Perturbations_Unique <- unique(All_LINCS_filt$pert_id)
 
+#Generating table for supplementary material.
+
+colnames(df_indications)[2] <- "DB_ID"
+df_indications <- as_tibble(df_indications)
+colnames(All_LINCS_filt)[1] <- "DB_ID"
+merged_indications_lincs <- left_join(df_indications,All_LINCS_filt)
+View(merged_indications_lincs)
+unique(merged_indications_lincs$DB_ID)
+All_DB <- get(load(file = "/media/data/jaume/LINCS_Raw/other_files/All_DB_with_LINCS.Rda"))
+colnames(All_DB)
+All_DB_filt <- All_DB[,c("primary_key","name")]
+colnames(All_DB_filt)[1] <- "DB_ID"
+merged_indications_lincs <- left_join(merged_indications_lincs,All_DB_filt)
+merged_indications_lincs <- unique(merged_indications_lincs)
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Indicated_Drugs.xlsx",merged_indications_lincs)
+
 #Retrieving the consensus signatures from the datafrmae and seving the data slice.
 
-  
 consensus_Signatures <- get(load(file = "/media/data/jaume/Consensus_Signatures/Data/Consensus_Signatures.Rda"))
 consensus_Signatures_Filt <- consensus_Signatures[,Perturbations_Unique]
 consensus_Signatures_Filt <- as.data.frame(as.matrix(consensus_Signatures_Filt))
