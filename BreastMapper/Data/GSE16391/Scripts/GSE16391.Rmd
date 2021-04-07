@@ -19,18 +19,15 @@ options(stringsAsFactors = F)
 ```{r}
 #cd /home/jaume/Projects/BreastMapper/Data/
 
-#mkdir GSE12276
+#mkdir GSE16391
 
-#cd GSE12276/
+#cd GSE16391/
 
 #mkdir Data
 
 #mkdir Quality
 
 #mkdir Scripts
-
-
-
 ```
 
 
@@ -40,13 +37,13 @@ options(stringsAsFactors = F)
 #Terminal commands to download the data.
 
 #cd /media/data/jaume/BreastCancer/Data
-#mkdir GSE12276
-#cd GSE12276
+#mkdir GSE16391
+#cd GSE16391
 #mkdir Data
-#cd /media/data/jaume/BreastCancer/Data/GSE12276/Data/
-#wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE12nnn/GSE12276/suppl/GSE12276_RAW.tar
-#wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE12nnn/GSE12276/soft/GSE12276_family.soft.gz
-#tar -xf GSE12276_RAW.tar
+#cd /media/data/jaume/BreastCancer/Data/GSE16391/Data/
+#wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE16nnn/GSE16391/suppl/GSE16391_RAW.tar
+#wget https://ftp.ncbi.nlm.nih.gov/geo/series/GSE16nnn/GSE16391/soft/GSE16391_family.soft.gz
+#tar -xf GSE16391_RAW.tar
 #gunzip *.CEL.gz (Unzip all gz files in a directory)
 ```
 
@@ -72,15 +69,14 @@ library(genefu)
 source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
 ```
 
-
-#GSE12276
+#GSE16391
 
 #Loading data.
 
 ```{r}
-"/media/data/jaume/BreastCancer/Data/GSE12276/Data/"
+"/media/data/jaume/BreastCancer/Data/GSE16391/Data/"
 
-GEO_dat  <- getGEO(filename= "/media/data/jaume/BreastCancer/Data/GSE12276/Data/GSE12276_family.soft.gz")
+GEO_dat  <- getGEO(filename= "/media/data/jaume/BreastCancer/Data/GSE16391/Data/GSE16391_family.soft.gz")
 ```
 
 #Getting information.
@@ -92,18 +88,20 @@ rownames(pData_GEO_dat) <- pData_GEO_dat$geo_accession
 View(pData_GEO_dat)
 
 pCh_Status <- rep("T",nrow(pData_GEO_dat))
+pCh_DFS_T <- pData_GEO_dat$pCh_t_rfs_months
+pCh_DFS_T_comments <- rep("It is distant metastais free survival expressed in months",nrow(pData_GEO_dat))
+pCh_DFS_E <- pData_GEO_dat$pCh_case_control_0._case._1_._control
+pCh_DFS_E[pCh_DFS_E == "1"] <- "Other"
+pCh_DFS_E[pCh_DFS_E == "0"] <- "1"
+pCh_DFS_E[pCh_DFS_E == "Other"] <- "0"
 
-pCh_DFS_T_A <- pData_GEO_dat$pCh_survival_time_.months.
-pCh_DFS_T_B <- pData_GEO_dat$pCh_Survival_time_.months.
-pCh_DFS_T_A[is.na(pCh_DFS_T_A)] <- pCh_DFS_T_B[is.na(pCh_DFS_T_A)]
-pCh_DFS_T <- pCh_DFS_T_A
+pCh_Age <- pData_GEO_dat$pCh_age
 
-pCh_DFS_T_comments <- rep("Relapse free survival expressed in months",nrow(pData_GEO_dat))
-pCh_DFS_E <- rep("1",length(pCh_DFS_T))
+pCh_Grade <- pData_GEO_dat$pCh_grade
 
+pCh_Node <- pData_GEO_dat$pCh_node
 
-#pCh_DFS_E <- pData_GEO_dat$pCh_DFS.status
-#pCh_Node <- pData_GEO_dat$pCh_node
+pCh_Size <- pData_GEO_dat$pCh_size
 #pCh_Node_comments <- rep("1 if affected nodes and 0 if not",nrow(pData_GEO_dat))
 #pCh_Grade <- pData_GEO_dat$pCh_grade
 #pCh_Tumor_Size <- pData_GEO_dat$pCh_size_in_cm
@@ -122,15 +120,15 @@ View(pData_GEO_ft)
 
 #Removing cel files generated with the B platform.
 
-files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE12276/Data/",full.names = T)
+files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE16391/Data/",full.names = T)
 file.remove(files_temp[grepl("soft.gz",files_temp)])
 file.remove(files_temp[grepl("_RAW.tar",files_temp)])
 
 
 #Obtaining md5 for each .CEL file.
 
-datafile<- buildFileTable(rootDir="/media/data/jaume/BreastCancer/Data/GSE12276/Data")
-result<-validateFile(datafile)
+datafile <- buildFileTable(rootDir="/media/data/jaume/BreastCancer/Data/GSE16391/Data")
+result <-validateFile(datafile)
 result <- result$filetable
 rownames(result) <- gsub(".CEL","",gsub(".*/Data/","",result$file))
 result$pCh_samples_to_df <- rownames(result)
@@ -146,7 +144,7 @@ colnames(pData_GEO_ft)[1] <- "pCh_Sample_Name"
 rownames(pData_GEO_ft) <- pData_GEO_ft[,1]
 View(pData_GEO_ft)
 
-directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE12276/Data",full.names = T)
+directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE16391/Data",full.names = T)
 directory_files_temp_to_delete <- directory_files_temp[grepl(".CEL.md5$",directory_files_temp)]
 for(i in 1:length(directory_files_temp_to_delete)){
   file.remove(directory_files_temp_to_delete[i])
@@ -156,7 +154,7 @@ for(i in 1:length(directory_files_temp_to_delete)){
 Reading files.
 
 ```{r}
-directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE12276/Data",full.names = T)
+directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE16391/Data",full.names = T)
 eData_GEO <- ReadAffy(filenames=directory_files_temp)
 cols_eDat <- colnames(eData_GEO)
 cols_eDat <- gsub(".CEL","",cols_eDat)
@@ -179,9 +177,9 @@ Running array quality analyses using arrayQualityMetrics
 
 ```{r}
 #source("H:/Tesis_Limpio/Funciones/Calidad_Datos_Sample_Network.R")
-arrayQualityMetrics_All_Groups(GEO_Eset_Raw,"/home/jaume/Projects/BreastMapper/Data/GSE12276/Quality/",var = "pCh_Status",do.logtransform = FALSE) #Already tranformed to log scale.
+arrayQualityMetrics_All_Groups(GEO_Eset_Raw,"/home/jaume/Projects/BreastMapper/Data/GSE16391/Quality/",var = "pCh_Status",do.logtransform = FALSE) #Already tranformed to log scale.
                                
-Tum_Data_QC  <- get_outliers_info(get(load(file="/home/jaume/Projects/BreastMapper/Data/GSE12276/Quality/Results/Pre_Norm/T/Raw_array_quality_metrics_Results.Rda")))
+Tum_Data_QC  <- get_outliers_info(get(load(file="/home/jaume/Projects/BreastMapper/Data/GSE16391/Quality/Results/Pre_Norm/T/Raw_array_quality_metrics_Results.Rda")))
 nrow(Tum_Data_QC)
 
 delete_tumors <- names(which(rowSums(Tum_Data_QC[,c(1,3,5)]) == 3))
@@ -231,11 +229,11 @@ library(genefu)
 
 pam50 <- molecular.subtyping(sbt.model = "pam50", data = t(exprs(GEO_Eset_Norm)),annot = annotation_temp, do.mapping = TRUE)
 pData(GEO_Eset_Norm)$pCh_pam50 <- as.character(pam50$subtype)
-pData(GEO_Eset_Norm)$pCh_Batch <- rep("GSE12276",ncol(GEO_Eset_Norm))
+pData(GEO_Eset_Norm)$pCh_Batch <- rep("GSE16391",ncol(GEO_Eset_Norm))
 
 pam50_frma <- molecular.subtyping(sbt.model = "pam50", data = t(exprs(GEO_Eset_Norm_frma)),annot = annotation_temp, do.mapping = TRUE)
 pData(GEO_Eset_Norm_frma)$pam50_frma <- as.character(pam50_frma$subtype)
-pData(GEO_Eset_Norm_frma)$pCh_Batch <- rep("GSE12276",ncol(GEO_Eset_Norm_frma))
+pData(GEO_Eset_Norm_frma)$pCh_Batch <- rep("GSE16391",ncol(GEO_Eset_Norm_frma))
 
 table(pData(GEO_Eset_Norm)$pCh_pam50  == pData(GEO_Eset_Norm_frma)$pam50_frma)
 ```
@@ -244,10 +242,9 @@ table(pData(GEO_Eset_Norm)$pCh_pam50  == pData(GEO_Eset_Norm_frma)$pam50_frma)
 library(survcomp)
 library(ggplot2)
 list_data_norm <- list(GEO_Eset_Norm,GEO_Eset_Norm_frma)
-save(file = "/home/jaume/Projects/BreastMapper/Data/GSE12276/Data/GSE12276_Norm.Rda",list_data_norm)
-GEO_Eset_Norm <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/GSE12276/Data/GSE12276_Norm.Rda"))
+save(file = "/home/jaume/Projects/BreastMapper/Data/GSE16391/Data/GSE16391_Norm.Rda",list_data_norm)
+GEO_Eset_Norm <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/GSE16391/Data/GSE16391_Norm.Rda"))
 table(exprs(GEO_Eset_Norm[[1]]) == exprs(GEO_Eset_Norm[[2]]))
 ```
-
 
 
