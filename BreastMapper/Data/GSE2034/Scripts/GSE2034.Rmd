@@ -256,7 +256,7 @@ pData(GEO_Eset_Norm) <- pData_GEO_ft[colnames(GEO_Eset_Norm),]
 dim(GEO_Eset_Norm)
 
 library(a4Preproc)
-library(hgu133plus2.db)
+library(hgu133a.db)
 
 GEO_Eset_Norm <- addGeneInfo(GEO_Eset_Norm, annotationLibrary = NULL)
 annotation_temp <- featureData(GEO_Eset_Norm)@data
