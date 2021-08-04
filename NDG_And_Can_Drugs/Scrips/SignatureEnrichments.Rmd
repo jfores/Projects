@@ -70,6 +70,7 @@ for(i in 1:length(profile_enrichment)){
 
 }
 
+help("write.xlsx")
 read.xlsx(file_to_save) #Files were successfully written.
 
 

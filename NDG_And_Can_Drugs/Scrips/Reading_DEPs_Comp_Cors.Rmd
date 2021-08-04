@@ -123,6 +123,7 @@ colnames(melted_data) <- c("pert_id","disorder","Spearman_cor","key","pert_id_2"
 colnames(melted_data)
 melted_data$p_adj <- p.adjust(melted_data$p_val,method = "fdr")
 View(melted_data)
+head(melted_data)
 
 df_indications <- get(load(file = "/media/data/jaume/Analysis_Data/CancersMDPI/Data/Disease_Drug_Indications.Rda"))
 
@@ -141,6 +142,13 @@ dim(joined_data_one)
 
 joined_data_two <- left_join(melted_data,joined_data_one,by = "pert_id")
 View(joined_data_two)
+
+#Create supplementary file.
+
+colnames(joined_data_two)
+To_supp_file <- joined_data_two[,c("disorder","pert_id","DB_IDS","pert_iname","Spearman_cor","p_val","p_adj")]
+
+write.xlsx(file = "/home/jaume/Projects/NDG_And_Can_Drugs/Results/Suuplementary_File_Disease_Drug_Corr.xlsx",To_supp_file)
 
 #Getting neurodegenerative disorder drugs showing negative correlations with cancers.
 

@@ -182,11 +182,13 @@ View(pData_GEO_ft)
 files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE2603/Data/",full.names = T)
 file.remove(files_temp[grepl("soft.gz",files_temp)])
 file.remove(files_temp[grepl("_RAW.tar",files_temp)])
+file.remove(files_temp[grepl("EXP.gz",files_temp)])
 
 
 #Obtaining md5 for each .CEL file.
 
 datafile <- buildFileTable(rootDir="/media/data/jaume/BreastCancer/Data/GSE2603/Data")
+datafile <- datafile[gsub(".CEL","",gsub(".*/Data/GSM","GSM",datafile$file)) %in% rownames(pData_GEO_ft),]
 result <-validateFile(datafile)
 result <- result$filetable
 rownames(result) <- gsub(".CEL","",gsub(".*/Data/","",result$file))
@@ -214,6 +216,7 @@ Reading files.
 
 ```{r}
 directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE2603/Data",full.names = T)
+directory_files_temp <- directory_files_temp[gsub(".CEL","",gsub(".*/Data/","",directory_files_temp)) %in% rownames(pData_GEO_ft)]
 eData_GEO <- ReadAffy(filenames=directory_files_temp)
 cols_eDat <- colnames(eData_GEO)
 cols_eDat <- gsub(".CEL","",cols_eDat)

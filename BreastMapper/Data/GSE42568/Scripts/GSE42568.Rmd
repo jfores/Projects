@@ -307,6 +307,7 @@ list_data_norm <- list(GEO_Eset_Norm,GEO_Eset_Norm_frma)
 save(file = "/home/jaume/Projects/BreastMapper/Data/GSE42568/Data/GSE42568_Norm.Rda",list_data_norm)
 GEO_Eset_Norm <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/GSE42568/Data/GSE42568_Norm.Rda"))
 table(exprs(GEO_Eset_Norm[[1]]) == exprs(GEO_Eset_Norm[[2]]))
+table(GEO_Eset_Norm[[1]]$pCh_Status)
 ```
 
 

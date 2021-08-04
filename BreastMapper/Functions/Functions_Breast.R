@@ -640,3 +640,290 @@ auto_quality <- function(eset,tagg,directory,pre_post = "Pre_Norm"){
   dev.off()
 }
 
+############################
+#Functions to mount dataset#
+############################
+
+#Loading datasets
+
+load_dataset_list <- function(studies,dir_root,norm_type = c("rma","frma")){
+  files_to_load <- paste(dir_root,studies,"/Data/",studies,"_Norm.Rda",sep = "")
+  print(files_to_load)
+  list_studies <- list()
+  for(i in 1:length(files_to_load)){
+    if(norm_type == "frma"){
+      list_studies[[i]] <- get(load(file = files_to_load[i]))[[2]]
+    }else if(norm_type == "rma"){
+      list_studies[[i]] <- get(load(file = files_to_load[i]))[[1]]
+    }
+  }
+  names(list_studies) <- studies
+  return(list_studies)
+}
+
+#Generating data.frame with pheno data.
+
+generate_pData <- function(list_load){
+  for(i in 1:length(list_load)){
+    if(i == 1){
+      pData_All <- pData(list_load[[i]])
+    }else{
+      pData_All <- rbind.fill(pData_All,pData(list_load[[i]]))
+    }
+  }
+  return(pData_All)
+}
+
+#Merging all data.
+
+merge_edata_based_on_shared <- function(list_load){
+  list_of_probes <- lapply(list_load,function(x) rownames(x))
+  Intersected_Probes <- Reduce("intersect",list_of_probes)
+  for(i in 1:length(list_load)){
+    if(i == 1){
+      eData_All <- exprs(list_load[[i]])[Intersected_Probes,]
+    }else{
+      eData_All <- cbind(eData_All,exprs(list_load[[i]])[Intersected_Probes,])
+    }
+  }
+  return(eData_All)
+}
+
+#Correcting batch effects.
+
+correct_batch <- function(eData_All,pData_All){
+  require(sva)
+  Batch_Data <- pData_All$pCh_Batch
+  Data_Mod <- model.matrix(~as.factor(pData_All$pCh_Status))
+  eData_All_Combat = ComBat(dat=eData_All, batch=Batch_Data, mod=Data_Mod, par.prior=TRUE, prior.plots=FALSE)
+  return(eData_All_Combat)
+}
+
+#Filtering out probes that do not target genes.
+
+filt_by_gene_tar_probes <- function(eData_All_Combat){
+  library("hgu133a.db")
+  x <- hgu133aSYMBOL
+  mapped_probes <- mappedkeys(x)
+  xx <- as.list(x[mapped_probes])
+  eData_All_Combat <- eData_All_Combat[names(xx),]
+  return(eData_All_Combat)
+}
+
+#Collapsing probes that target the same gene.
+
+collapse_rows <- function(entrez_probe_map,e_set,Method = "MaxMean"){
+  if(!(paste("package:","WGCNA",sep="") %in% search())){
+    require("WGCNA")
+  }
+  mapped_probes <- mappedkeys(x)
+  xx <- as.list(x[mapped_probes])
+  xx_filt <- xx[rownames(e_set)]
+  if(class(e_set)[1] == "matrix"){
+    exprs_eset_collapsed <- collapseRows(e_set,as.character(xx_filt),rownames(e_set),method=Method)
+  }else if(class(e_set)[1] == "data.frame"){
+    exprs_eset_collapsed <- collapseRows(exprs(e_set),as.character(xx_filt),rownames(e_set),method=Method)
+  }
+  exprs_eset_collapsed <- exprs_eset_collapsed[[1]][!is.na(rownames(exprs_eset_collapsed[[1]])),]
+  return(exprs_eset_collapsed)
+}
+
+#Cleaning covariates.
+
+Clean_pheno <- function(pData_All,norm_type = c("rma","frma")){
+  #Survival block.
+  try({
+    pData_All$pCh_DFS_E[pData_All$pCh_DFS_E == "NA"] <- NA
+  })
+  try({
+    pData_All$pCh_DFS_T <- as.numeric( pData_All$pCh_DFS_T)
+  })
+  try({
+    pData_All$pCh_Death_E[pData_All$pCh_Death_E == "NA"] <- NA
+  })
+  try({
+    pData_All$pCh_Death_T <- as.numeric( pData_All$pCh_Death_T)
+  })
+  #Receptors block
+  try({
+    pData_All$pCh_ER_Status[pData_All$pCh_ER_Status == "ER+"] <- "1"
+  })
+  try({
+    pData_All$pCh_ER_Status[pData_All$pCh_ER_Status == "I"] <- NA
+  })
+  try({
+    pData_All$pCh_ER_Status[pData_All$pCh_ER_Status == "NA"] <- NA
+  })
+  try({
+    pData_All$pCh_PR_Status[pData_All$pCh_PR_Status == "NA"] <- NA
+    
+  })
+  try({
+    pData_All$pCh_HER2_Status[pData_All$pCh_HER2_Status == "I"] <- NA
+  })
+  try({
+    pData_All$pCh_HER2_Status[pData_All$pCh_HER2_Status == "NA"] <- NA
+  })
+  try({
+    pData_All$pCh_HER2_Status[is.na(pData_All$pCh_HER2_Status)] <- pData_All$pCh_ERBB2_Status[is.na(pData_All$pCh_HER2_Status)]
+  })
+  try({
+    pData_All$pCh_HER2_Status[pData_All$pCh_HER2_Status == "NA"] <- NA
+  })
+  #Age
+  try({
+    pData_All$pCh_Age <- as.numeric(pData_All$pCh_Age)
+  })
+  #Grade
+  try({
+    pData_All$pCh_Grade[pData_All$pCh_Grade == "G1"] <- "1"
+    
+  })
+  try({
+    pData_All$pCh_Grade[pData_All$pCh_Grade == "G2"] <- "2"
+    
+  })
+  try({
+    pData_All$pCh_Grade[pData_All$pCh_Grade == "G3"] <- "3"
+    
+  })
+  try({
+    pData_All$pCh_Grade[pData_All$pCh_Grade == "4=Indeterminate"] <- NA
+    
+  })
+  try({
+    pData_All$pCh_Grade[pData_All$pCh_Grade == "NA"] <- NA
+    
+  })
+  #Node
+  try({
+    pData_All$pCh_Node[pData_All$pCh_Node == "N2"] <- "1"
+    
+  })
+  try({
+    pData_All$pCh_Node[pData_All$pCh_Node == "N3"] <- "1"
+    
+  })
+  try({
+    pData_All$pCh_Node[pData_All$pCh_Node == "NA"] <- NA
+  })
+  if(norm_type == "rma"){
+    try({
+      pData_All$pam50[pData_All$pCh_Status == "NT"] <- "Healthy_breast"
+      
+    })
+  }
+  if(norm_type == "frma"){
+    try({
+      pData_All$pam50_frma[pData_All$pCh_Status == "NT"] <- "Healthy_breast"
+    })
+  }
+  rownames(pData_All) <- pData_All$pCh_Sample_Name
+  return(pData_All)
+}
+
+
+#Removing duplicated samples based on checksums.
+
+remove_dup_check <- function(pData_All,eData_All_Combat){
+  bool_filt <- !duplicated(pData_All$pCh_md5_to_df)
+  eData_All_Combat <- eData_All_Combat[,bool_filt]
+  pData_All <- pData_All[bool_filt,]
+  return(list(eData_All_Combat,pData_All))
+}
+
+#Carry out cox proportional hazard models using one gene at a time as predictor.
+
+#Flattening normal tissue vectors.
+
+flattenign_vectors <- function(normal_tissue_data){
+  df_out <- normal_tissue_data
+  for(i in 1:ncol(normal_tissue_data)){
+    df_out[,i] <- fitted(lm(normal_tissue_data[,i] ~ 0 + ., data = data.frame(normal_tissue_data)[,-i]))
+  }
+  return(df_out)
+}
+
+#wssplot for clustering
+
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")}
+
+#Generating disease vectors.
+
+disease_vector_analysis <- function(eData_All_Combat,pData_All){
+  bool_filt <- pData_All$pCh_Status == "NT"
+  eData_All_Combat_NT <- eData_All_Combat[,bool_filt]
+  bool_filt <- pData_All$pCh_Status == "T"
+  eData_All_Combat_T <- eData_All_Combat[,bool_filt]
+  flattened_vectors <- flattenign_vectors(eData_All_Combat_NT)
+  #Performing dimensionality reduction.
+  svd_results <- svd(flattened_vectors)
+  g_w_out <- goodnes_w(svd_results$d,nrow(eData_All_Combat_NT))
+  print("Done")
+  plot(1:(ncol(eData_All_Combat_NT)-1),g_w_out,ylim  = c(1,50))
+  number_of_components <- readline(prompt="Enter the selected number of components: ")
+  n_esp <- Create_Normal_State_Model(svd_results,as.numeric(number_of_components))
+  #n_esp <- n_esp[,1:as.numeric(number_of_components)]
+  disease_vectors <- generate_the_disease_vector(eData_All_Combat,n_esp)
+  return(disease_vectors)
+}
+
+#Generating the disease vectors. 
+
+generate_the_disease_vector <- function(disease_matrix,normal_space){
+  output_df <- disease_matrix
+  for(i in 1:ncol(disease_matrix)){
+    print(i)
+    output_df[,i] <- resid(lm(disease_matrix[,i] ~ 0 + ., data = data.frame(normal_space)))
+  }
+  return(output_df)
+}
+
+
+
+#Compute the goodness of fit measure for W for for the flat matrix.
+
+goodnes_w <- function(vector_of_sv,n_val){
+  output_vector <- c()
+  for(i in 1:(length(vector_of_sv)-1)){
+    left_eq_num <- vector_of_sv[i]^2
+    #print(left_eq_num)
+    left_eq_den <- sum((vector_of_sv[(i+1):length(vector_of_sv)])^2)
+    #print(left_eq_den)
+    left_side <- left_eq_num/left_eq_den
+    #print(left_side)
+    right_side_num <- (n_val-i-1)*(length(vector_of_sv)-i)
+    #print(right_side_num)
+    right_side_den <- (n_val + length(vector_of_sv)-(2*i))
+    #print(right_side_den)
+    right_side <- right_side_num/right_side_den
+    #print(right_side)
+    W_l <- left_side*right_side
+    output_vector <- c(output_vector,W_l)
+  }
+  return(output_vector)
+}
+
+#Create the normal state model.
+
+Create_Normal_State_Model <- function(svd_res,number_of_selected_comp){
+  matrix_b <- matrix(0,nrow = length(svd_res$d),ncol = length(svd_res$d))
+  vector_diag <- svd_res$d
+  vector_diag[(number_of_selected_comp+1):length(vector_diag)] <- 0
+  print(vector_diag)
+  diag(matrix_b) <- vector_diag
+  print(matrix_b)
+  normal_space_a <- svd_res$u %*% matrix_b 
+  print("This is the dimension of the first matrix multiplication")
+  print(dim(normal_space_a))
+  print("This is the dimension of the second matrix multiplication")
+  normal_space_b <- normal_space_a %*% t(svd_res$v)
+  print(dim(normal_space_b))
+  return(normal_space_b)
+}

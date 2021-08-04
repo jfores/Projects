@@ -176,14 +176,20 @@ Tum_Data_QC  <- get_outliers_info(get(load(file="/home/jaume/Projects/BreastMapp
 nrow(Tum_Data_QC)
 
 delete_tumors <- names(which(rowSums(Tum_Data_QC[,c(1,3,5)]) == 3))
+
+
+Cont_Data_QC  <- get_outliers_info(get(load(file="/home/jaume/Projects/BreastMapper/Data/GSE65216/Quality/Results/Pre_Norm/NT/Raw_array_quality_metrics_Results.Rda")))
+delete_controls <- names(which(rowSums(Cont_Data_QC[,c(1,3,5)]) == 3))
+
+delete_tumors <- c(delete_tumors,delete_controls)
 ```
 
 Background correction and normalization using RMA
 
 ```{r}
-eData_GEO_filt <- eData_GEO[,!gsub(".CEL","",colnames(eData_GEO@assayData$exprs)) %in% delete_tumors]
+eData_GEO_filt <- eData_GEO[,!gsub("_.*","",gsub(".CEL","",colnames(eData_GEO@assayData$exprs))) %in% delete_tumors]
 GEO_Eset_Norm <- affy::rma(eData_GEO_filt,background = TRUE,normalize = TRUE)
-colnames(GEO_Eset_Norm) <- gsub(".CEL","",colnames(GEO_Eset_Norm))
+colnames(GEO_Eset_Norm) <- gsub("_.*","",gsub(".CEL","",colnames(GEO_Eset_Norm)))
 pData(GEO_Eset_Norm) <- pData_GEO_ft[colnames(GEO_Eset_Norm),]
 dim(GEO_Eset_Norm)
 
@@ -199,10 +205,10 @@ colnames(annotation_temp) <- c("EntrezGene.ID","ENSEMBLID","Gene.Symbol","Descri
 Background correction and normalization using fRMA
 
 ```{r}
-eData_GEO_filt <- eData_GEO[,!gsub(".CEL","",colnames(eData_GEO@assayData$exprs)) %in% delete_tumors]
+eData_GEO_filt <- eData_GEO[,!gsub("_.*","",gsub(".CEL","",colnames(eData_GEO@assayData$exprs))) %in% delete_tumors]
 GEO_Eset_Norm_frma <- frma(eData_GEO_filt)
 exprs(GEO_Eset_Norm_frma)
-colnames(GEO_Eset_Norm_frma) <- gsub(".CEL","",colnames(GEO_Eset_Norm_frma))
+colnames(GEO_Eset_Norm_frma) <- gsub("_.*","",gsub(".CEL","",colnames(GEO_Eset_Norm_frma)))
 pData(GEO_Eset_Norm_frma) <- pData_GEO_ft[colnames(GEO_Eset_Norm_frma),]
 dim(GEO_Eset_Norm_frma)
 
@@ -238,6 +244,7 @@ list_data_norm <- list(GEO_Eset_Norm,GEO_Eset_Norm_frma)
 save(file = "/home/jaume/Projects/BreastMapper/Data/GSE65216/Data/GSE65216_Norm.Rda",list_data_norm)
 GEO_Eset_Norm <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/GSE65216/Data/GSE65216_Norm.Rda"))
 table(exprs(GEO_Eset_Norm[[1]]) == exprs(GEO_Eset_Norm[[2]]))
+table(GEO_Eset_Norm[[1]]$pCh_Status)
 ```
 
 

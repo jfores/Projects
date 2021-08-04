@@ -194,7 +194,7 @@ file.remove(files_temp[grepl("_RAW.tar",files_temp)])
 datafile <- buildFileTable(rootDir="/media/data/jaume/BreastCancer/Data/GSE25066/Data")
 result <-validateFile(datafile)
 result <- result$filetable
-rownames(result) <- gsub(".CEL","",gsub(".*/Data/","",result$file))
+rownames(result) <- gsub("_.*","",gsub(".CEL","",gsub(".*/Data/","",result$file)))
 result$pCh_samples_to_df <- rownames(result)
 result <- result[,-1]
 result <- result[,c(3,1,2)]
@@ -221,7 +221,7 @@ Reading files.
 directory_files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE25066/Data",full.names = T)
 eData_GEO <- ReadAffy(filenames=directory_files_temp)
 cols_eDat <- colnames(eData_GEO)
-cols_eDat <- gsub(".CEL","",cols_eDat)
+cols_eDat <- gsub("_.*","",gsub(".CEL","",cols_eDat))
 pData_GEO_ft <- pData_GEO_ft[cols_eDat,]
 ```
 
@@ -232,7 +232,7 @@ library("affy")
 library("affycoretools")
 GEO_Eset_Raw <- affy::rma(eData_GEO,background = FALSE,normalize = FALSE)
 colnames(GEO_Eset_Raw)
-colnames(GEO_Eset_Raw) <- gsub(".CEL","",colnames(GEO_Eset_Raw))
+colnames(GEO_Eset_Raw) <- gsub("_.*","",gsub(".CEL","",colnames(GEO_Eset_Raw)))
 pData(GEO_Eset_Raw) <- pData_GEO_ft[colnames(GEO_Eset_Raw),]
 exprs(GEO_Eset_Raw)
 ```
@@ -252,9 +252,9 @@ delete_tumors <- names(which(rowSums(Tum_Data_QC[,c(1,3,5)]) == 3))
 Background correction and normalization using RMA
 
 ```{r}
-eData_GEO_filt <- eData_GEO[,!gsub(".CEL","",colnames(eData_GEO@assayData$exprs)) %in% delete_tumors]
+eData_GEO_filt <- eData_GEO[,!gsub("_.*","",gsub(".CEL","",colnames(eData_GEO@assayData$exprs))) %in% delete_tumors]
 GEO_Eset_Norm <- affy::rma(eData_GEO_filt,background = TRUE,normalize = TRUE)
-colnames(GEO_Eset_Norm) <- gsub(".CEL","",colnames(GEO_Eset_Norm))
+colnames(GEO_Eset_Norm) <- gsub("_.*","",gsub(".CEL","",colnames(GEO_Eset_Norm)))
 pData(GEO_Eset_Norm) <- pData_GEO_ft[colnames(GEO_Eset_Norm),]
 dim(GEO_Eset_Norm)
 
@@ -270,10 +270,10 @@ colnames(annotation_temp) <- c("EntrezGene.ID","ENSEMBLID","Gene.Symbol","Descri
 Background correction and normalization using fRMA
 
 ```{r}
-eData_GEO_filt <- eData_GEO[,!gsub(".CEL","",colnames(eData_GEO@assayData$exprs)) %in% delete_tumors]
+eData_GEO_filt <- eData_GEO[,!gsub("_.*","",gsub(".CEL","",colnames(eData_GEO@assayData$exprs))) %in% delete_tumors]
 GEO_Eset_Norm_frma <- frma(eData_GEO_filt)
 exprs(GEO_Eset_Norm_frma)
-colnames(GEO_Eset_Norm_frma) <- gsub(".CEL","",colnames(GEO_Eset_Norm_frma))
+colnames(GEO_Eset_Norm_frma) <- gsub("_.*","",gsub(".CEL","",colnames(GEO_Eset_Norm_frma)))
 pData(GEO_Eset_Norm_frma) <- pData_GEO_ft[colnames(GEO_Eset_Norm_frma),]
 dim(GEO_Eset_Norm_frma)
 

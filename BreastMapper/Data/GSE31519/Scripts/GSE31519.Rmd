@@ -186,6 +186,7 @@ View(pData_GEO_ft)
 files_temp <- dir("/media/data/jaume/BreastCancer/Data/GSE31519/Data/",full.names = T)
 file.remove(files_temp[grepl("soft.gz",files_temp)])
 file.remove(files_temp[grepl("_RAW.tar",files_temp)])
+file.remove(files_temp[grepl(".CEL.gz",files_temp)])
 
 
 #Obtaining md5 for each .CEL file.
@@ -305,6 +306,7 @@ table(pData(GEO_Eset_Norm)$pCh_pam50  == pData(GEO_Eset_Norm_frma)$pam50_frma)
 library(survcomp)
 library(ggplot2)
 list_data_norm <- list(GEO_Eset_Norm,GEO_Eset_Norm_frma)
+pData(GEO_Eset_Norm)
 save(file = "/home/jaume/Projects/BreastMapper/Data/GSE31519/Data/GSE31519_Norm.Rda",list_data_norm)
 GEO_Eset_Norm <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/GSE31519/Data/GSE31519_Norm.Rda"))
 table(exprs(GEO_Eset_Norm[[1]]) == exprs(GEO_Eset_Norm[[2]]))
