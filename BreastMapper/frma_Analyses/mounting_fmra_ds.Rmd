@@ -1,0 +1,287 @@
+
+```{r}
+rm(list = ls())
+options(stringsAsFactors = F)
+library(GEOquery)
+```
+
+```{r}
+source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
+```
+
+Preparing the data.
+
+```{r}
+studies <- c("GSE11121","GSE12093","GSE12276","GSE1456","GSE16391","GSE16446","GSE17705","GSE17907","GSE19615","GSE2034","GSE20685","GSE20711","GSE21653","GSE25066","GSE2603","GSE26971","GSE30010","GSE31519","GSE42568","GSE45255","GSE4922","GSE5327","GSE65216","GSE7390","GSE9195")
+length(unique(studies))
+
+dir_root <- "/home/jaume/Projects/BreastMapper/Data/"
+
+#Loading datasets.
+
+dataset_list <- load_dataset_list(studies,dir_root,norm_type = "frma")
+
+#Generatig pheno data.
+
+pData_All <- generate_pData(dataset_list)
+
+selected_colums <- c("pCh_Sample_Name","pCh_DFS_E","pCh_DFS_T","pCh_Grade","pCh_Node","pCh_Status","pCh_samples_to_df","pCh_directory_to_df","pCh_md5_to_df","pam50_frma","pCh_Batch","pCh_Death_E","pCh_Death_T","pCh_Age","pCh_N_Code","pCh_T_Code","pCh_ER_Status","pCh_ERBB2_Status","pCh_PR_Status","pCh_HER2_Status","pCh_M_Code","pCh_KI67","pCh_P53")
+
+pData_All <- pData_All[,selected_colums]
+
+##########################################
+#Checking for mistakes in survival units.#
+##########################################
+
+splitted_data <- split(pData_All,f = as.factor(pData_All$pCh_Batch))
+
+fun_to_apply <- function(x){
+  try({
+    return(mean(na.omit(as.numeric(x$pCh_DFS_T))))
+  })
+}
+View(t(data.frame(lapply(splitted_data,fun_to_apply))))
+
+boxplot(as.numeric(pData_All$pCh_DFS_T)~as.factor(pData_All$pCh_Batch),las=2)
+
+plot(1:3,1:3)
+
+
+#After inspecting the boxplos and the mean disease free survival times we noticed that the DFS data from GSE20685 was in years whereas the disease free survival data of GSE16446 is in days. Therefore will recode this data to put in in months.
+
+pData_All[pData_All$pCh_Batch == "GSE20685","pCh_DFS_T"] <- as.character(as.numeric(pData_All[pData_All$pCh_Batch == "GSE20685","pCh_DFS_T"]) * 12)
+
+days_to_months <- 30.4375
+
+pData_All[pData_All$pCh_Batch == "GSE16446","pCh_DFS_T"] <- as.character(as.numeric(pData_All[pData_All$pCh_Batch == "GSE16446","pCh_DFS_T"]) / days_to_months)
+
+###################################
+#Now let's do the same for Death_T#
+###################################
+
+splitted_data <- split(pData_All,f = as.factor(pData_All$pCh_Batch))
+length(splitted_data)
+fun_to_apply <- function(x){
+  try({
+    return(mean(na.omit(as.numeric(x$pCh_Death_T))))
+  })
+}
+View(t(data.frame(lapply(splitted_data,fun_to_apply))))
+dev.off()
+boxplot(as.numeric(pData_All$pCh_Death_T)~as.factor(pData_All$pCh_Batch),las=2)
+plot(as.numeric(pData_All$pCh_Death_T))
+
+#We have to recode GSE16446
+
+pData_All[pData_All$pCh_Batch == "GSE16446","pCh_Death_T"] <- as.character(as.numeric(pData_All[pData_All$pCh_Batch == "GSE16446","pCh_Death_T"]) / days_to_months)
+boxplot(as.numeric(pData_All$pCh_Death_T)~as.factor(pData_All$pCh_Batch),las=2)
+
+###############################
+#Recoding the rest of elements#
+###############################
+
+pData_All_clean <- Clean_pheno(pData_All,norm_type = "frma")
+
+###########################
+#Preparing expression data#
+###########################
+
+#Merging expression data based on the probes jointly present in GPL96 and GPL570.
+
+eData_All <- merge_edata_based_on_shared(dataset_list)
+
+dim(eData_All)
+
+#Correcting batch effects.
+
+eData_All_Combat <- correct_batch(eData_All,pData_All)
+
+#Selecting only probes that target annotated genes.
+
+eData_All_Combat <- filt_by_gene_tar_probes(eData_All_Combat)
+
+#Collapsing probes that target the same gene.
+
+library(hgu133a.db)
+
+x <- hgu133aSYMBOL
+
+eData_All_Combat_MaxMean <- collapse_rows(x,eData_All_Combat,Method = "MaxMean")
+dim(eData_All_Combat_MaxMean)
+list_MM_frma <- list(eData_All_Combat_MaxMean,pData_All_clean)
+save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MM_frma.Rda",list_MM_frma)
+
+eData_All_Combat_Average <- collapse_rows(x,eData_All_Combat,Method = "Average")
+list_AV_frma <- list(eData_All_Combat_Average,pData_All_clean)
+save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_AV_frma.Rda",list_AV_frma)
+
+eData_All_Combat_MaxRowVar <- collapse_rows(x,eData_All_Combat,"maxRowVariance")
+list_MRV_frma <- list(eData_All_Combat_MaxRowVar,pData_All_clean)
+save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MRV_frma.Rda",list_MRV_frma)
+```
+
+Measuring the degreee of associations of each tested gene with disease free survival.
+
+```{r}
+source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
+
+
+list_MM_frma <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MM_frma.Rda"))
+eData_frma_MM <- list_MM_frma[[1]]
+pData_frma_MM <- list_MM_frma[[2]]
+length(pData_frma_MM$pCh_md5_to_df) - length(unique(pData_frma_MM$pCh_md5_to_df))
+
+#63 samples were removed due to the presence of duplicated checksums.
+
+#Removing duplicated samples based on checksums.
+
+list_MM_frma <- remove_dup_check(pData_frma_MM,eData_frma_MM)
+eData_frma_MM <- list_MM_frma[[1]]
+pData_frma_MM <- list_MM_frma[[2]]
+dim(pData_frma_MM)
+
+#Selecting samples with disease free survival info.
+
+pData_frma_MM_WS <- pData_frma_MM[!is.na(pData_frma_MM$pCh_DFS_T),]
+eData_frma_MM_WS <- eData_frma_MM[,rownames(pData_frma_MM_WS)]
+
+library(dplyr)
+library(survival)
+library(survminer)
+
+rownames(eData_frma_MM_WS)[7]
+temp <- coxph(Surv(pData_frma_MM_WS$pCh_DFS_T,as.numeric(pData_frma_MM_WS$pCh_DFS_E))~eData_frma_MM_WS[7,])
+summary_temp <- summary(temp)
+summary_temp$logtest
+summary_temp$waldtest
+summary_temp$coefficients[1,]
+
+
+cox_all_genes <- function(eData,pData){
+  list_out <- list()
+  for(i in 1:nrow(eData)){
+    print(i)
+    temp <- summary(coxph(Surv(pData$pCh_DFS_T,as.numeric(pData$pCh_DFS_E))~eData[i,]))$coefficients[1,]
+    list_out[[i]] <- temp
+  }
+  df_out <- data.frame(do.call("rbind",list_out))
+  rownames(df_out) <-rownames(eData)
+  return(df_out)
+}
+
+cox_all_genes <- cox_all_genes(eData_frma_MM_WS,pData_frma_MM_WS)
+View(cox_all_genes)
+
+cor.test(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
+plot(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
+
+#Genes for which high expression levels are linked to higher survival times.
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["BCL2",] >= mean(eData_frma_MM_WS["BCL2",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["BCL2",] >= mean(eData_frma_MM_WS["BCL2",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["LRIG1",] >= mean(eData_frma_MM_WS["LRIG1",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["LRIG1",] >= mean(eData_frma_MM_WS["LRIG1",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["IL6ST",] >= mean(eData_frma_MM_WS["IL6ST",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["IL6ST",] >= mean(eData_frma_MM_WS["IL6ST",]),"Up","Down"))
+
+#Genes for wchih low expression levels arre linked to 
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CMC2",] >= mean(eData_frma_MM_WS["CMC2",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CMC2",] >= mean(eData_frma_MM_WS["CMC2",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["MELK",] >= mean(eData_frma_MM_WS["MELK",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["MELK",] >= mean(eData_frma_MM_WS["MELK",]),"Up","Down"))
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["NCAPG",] >= mean(eData_frma_MM_WS["NCAPG",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["NCAPG",] >= mean(eData_frma_MM_WS["NCAPG",]),"Up","Down"))
+
+#HR values higher than 1 imply an increase in hazard (reduction in survival), therefore in those cases increases in gene expresion reduce the survival. 
+
+#One instance is: 
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
+
+#HR values lower than 1 imply a decrease in hazard (increase in survival):
+
+t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
+boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
+
+save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MRV_frma.Rda",cox_all_genes)
+```
+
+Step by step TDA analysis for frma maxmean data. 
+
+```{r}
+list_MM_frma <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MM_frma.Rda"))
+eData_frma_MM <- list_MM_frma[[1]]
+pData_frma_MM <- list_MM_frma[[2]]
+table(colnames(eData_frma_MM) == rownames(pData_frma_MM))
+
+#Flat vector construction.
+
+eData_frma_MM_NT <- eData_frma_MM[,pData_frma_MM$pCh_Status == "NT"]
+pData_frma_MM_NT <- pData_frma_MM[pData_frma_MM$pCh_Status == "NT",]
+
+eData_frma_MM_NT_flat <- flattenign_vectors(eData_frma_MM_NT)
+table(eData_frma_MM_NT == eData_frma_MM_NT_flat)
+hist(eData_frma_MM_NT)
+hist(eData_frma_MM_NT_flat)
+
+lm_out <- lm(eData_frma_MM_NT[,1]~.,data = data.frame(eData_frma_MM_NT[,-1]))
+lm_out_f <- fitted(lm_out)
+
+lm_out_2 <- lm(eData_frma_MM_NT[,1]~ 0 +.,data = data.frame(eData_frma_MM_NT[,-1]))
+lm_out_2_f <- fitted(lm_out_2)
+
+help(fitted)
+
+table(lm_out_f == lm_out_2_f)
+
+hist(lm_out_f)
+hist(lm_out_2_f)
+
+summary(lm_out)
+
+
+
+flattenign_vectors <- function(normal_tissue_data){
+  df_out <- normal_tissue_data
+  for(i in 1:ncol(normal_tissue_data)){
+    df_out[,i] <- fitted(lm(normal_tissue_data[,i] ~ ., data = data.frame(normal_tissue_data)[,-i]))
+  }
+  return(df_out)
+}
+
+flattenign_vectors <- function(normal_tissue_data){
+  df_out <- normal_tissue_data
+  for(i in 1:ncol(normal_tissue_data)){
+    df_out[,i] <- fitted(lm(normal_tissue_data[,i] ~ 0 + ., data = data.frame(normal_tissue_data)[,-i]))
+  }
+  return(df_out)
+}
+
+
+
+
+#Flat construction. 
+
+
+source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
+disease_vectors <- disease_vector_analysis(eData_frma_MM,pData_frma_MM)
+
+dim(disease_vectors)
+```
+
+
+https://thriv.github.io/biodatasci2018/r-survival.html
+https://thriv.github.io/biodatasci2018/r-survival.html
+https://www.datacamp.com/community/tutorials/survival-analysis-R
