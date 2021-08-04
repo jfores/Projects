@@ -1,3 +1,8 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
 
 ```{r}
 rm(list = ls())
@@ -28,6 +33,7 @@ pData_All <- generate_pData(dataset_list)
 selected_colums <- c("pCh_Sample_Name","pCh_DFS_E","pCh_DFS_T","pCh_Grade","pCh_Node","pCh_Status","pCh_samples_to_df","pCh_directory_to_df","pCh_md5_to_df","pam50_frma","pCh_Batch","pCh_Death_E","pCh_Death_T","pCh_Age","pCh_N_Code","pCh_T_Code","pCh_ER_Status","pCh_ERBB2_Status","pCh_PR_Status","pCh_HER2_Status","pCh_M_Code","pCh_KI67","pCh_P53")
 
 pData_All <- pData_All[,selected_colums]
+View(pData_All)
 
 ##########################################
 #Checking for mistakes in survival units.#
@@ -40,14 +46,12 @@ fun_to_apply <- function(x){
     return(mean(na.omit(as.numeric(x$pCh_DFS_T))))
   })
 }
+
 View(t(data.frame(lapply(splitted_data,fun_to_apply))))
 
 boxplot(as.numeric(pData_All$pCh_DFS_T)~as.factor(pData_All$pCh_Batch),las=2)
 
-plot(1:3,1:3)
-
-
-#After inspecting the boxplos and the mean disease free survival times we noticed that the DFS data from GSE20685 was in years whereas the disease free survival data of GSE16446 is in days. Therefore will recode this data to put in in months.
+#After inspecting the boxplos and the mean disease free survival times we noticed that the DFS data from GSE20685 was in years whereas the disease free survival data of GSE16446 is in days. Therefore will recoded this data to put in in months.
 
 pData_All[pData_All$pCh_Batch == "GSE20685","pCh_DFS_T"] <- as.character(as.numeric(pData_All[pData_All$pCh_Batch == "GSE20685","pCh_DFS_T"]) * 12)
 
@@ -60,7 +64,9 @@ pData_All[pData_All$pCh_Batch == "GSE16446","pCh_DFS_T"] <- as.character(as.nume
 ###################################
 
 splitted_data <- split(pData_All,f = as.factor(pData_All$pCh_Batch))
+
 length(splitted_data)
+
 fun_to_apply <- function(x){
   try({
     return(mean(na.omit(as.numeric(x$pCh_Death_T))))
@@ -118,6 +124,8 @@ save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_AV_frma.Rda",
 eData_All_Combat_MaxRowVar <- collapse_rows(x,eData_All_Combat,"maxRowVariance")
 list_MRV_frma <- list(eData_All_Combat_MaxRowVar,pData_All_clean)
 save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MRV_frma.Rda",list_MRV_frma)
+
+citation("frma")
 ```
 
 Measuring the degreee of associations of each tested gene with disease free survival.
@@ -139,10 +147,14 @@ list_MM_frma <- remove_dup_check(pData_frma_MM,eData_frma_MM)
 eData_frma_MM <- list_MM_frma[[1]]
 pData_frma_MM <- list_MM_frma[[2]]
 dim(pData_frma_MM)
+table(pData_frma_MM$pCh_Status)
+
 
 #Selecting samples with disease free survival info.
 
 pData_frma_MM_WS <- pData_frma_MM[!is.na(pData_frma_MM$pCh_DFS_T),]
+View(pData_frma_MM_WS)
+dim(pData_frma_MM_WS)
 eData_frma_MM_WS <- eData_frma_MM[,rownames(pData_frma_MM_WS)]
 
 library(dplyr)
@@ -169,8 +181,20 @@ cox_all_genes <- function(eData,pData){
   return(df_out)
 }
 
+#Computing cox proportional hazard models for all studied genes.
+
 cox_all_genes <- cox_all_genes(eData_frma_MM_WS,pData_frma_MM_WS)
+colnames(cox_all_genes) <- c("coef","exp_coef","se_coef","z","p_val")
+save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MM_fma.Rda",cox_all_genes)
+cox_all_genes <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MM_fma.Rda"))
 View(cox_all_genes)
+
+#HASTA AQUÍ HEMOS LLAGAO
+
+
+
+View(cox_all_genes)
+
 
 cor.test(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
 plot(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
