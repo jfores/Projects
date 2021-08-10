@@ -1,0 +1,53 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+library(WGCNA)
+```
+
+```{r}
+# Allow multi-threading in WGCNA
+allowWGCNAThreads()
+
+# The following setting is important, do not omit.
+options(stringsAsFactors = FALSE)
+```
+
+
+```{r}
+list_MM_frma <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MM_frma.Rda"))
+eData_frma_MM <- list_MM_frma[[1]]
+pData_frma_MM <- list_MM_frma[[2]]
+```
+
+Preparing data. split based on study:
+
+```{r}
+studies <- unique(pData_frma_MM$pCh_Batch)
+e_list <- list()
+p_list <- list()
+for(i in 1:length(studies)){
+  e_list[[i]] <- t(eData_frma_MM[,pData_frma_MM$pCh_Batch == studies[[i]]])
+  p_list[[i]] <- pData_frma_MM[pData_frma_MM$pCh_Batch == studies[[i]],]
+  
+}
+
+powerTables = vector(mode = "list", length = length(e_list))
+powers = c(seq(2, 20, by=1));
+
+
+for (set in 1:length(e_list)){
+  powerTables[[i]] <- pickSoftThreshold(e_list[[i]], powerVector=powers, corFnc = "bicor",networkType = "signed hybrid", blockSize = 14000,verbose = 2)
+}
+  
+  
+```
+
+
+
+```{r}
+help("pickSoftThreshold")
+```
+
