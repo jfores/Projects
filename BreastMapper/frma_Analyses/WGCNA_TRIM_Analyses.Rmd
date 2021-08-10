@@ -38,11 +38,27 @@ powerTables = vector(mode = "list", length = length(e_list))
 powers = c(seq(2, 20, by=1));
 
 
-for (set in 1:length(e_list)){
+for (i in 1:length(e_list)){
   powerTables[[i]] <- pickSoftThreshold(e_list[[i]], powerVector=powers, corFnc = "bicor",networkType = "signed hybrid", blockSize = 14000,verbose = 2)
 }
   
-  
+save(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/powerTables.Rda",powerTables)
+powerTables <- get(load(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/powerTables.Rda"))
+collectGarbage()
+
+#Plotting all tables (In the future can be saved as pdf)
+
+source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
+for(i in 1:length(studies)){
+  plot_wgcna_power_Tables(powerTables[[i]],studies[i],0.85)
+
+}
+
+selected_thrs <- unlist(lapply(powerTables,function(x) x[[1]]))
+
+
+
+plot_wgcna_power_Tables_con(powerTables[[2]],studies[2])
 ```
 
 

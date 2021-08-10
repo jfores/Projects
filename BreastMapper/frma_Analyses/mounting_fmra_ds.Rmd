@@ -152,7 +152,7 @@ table(pData_frma_MM$pCh_Status)
 
 #Selecting samples with disease free survival info.
 
-pData_frma_MM_WS <- pData_frma_MM[!is.na(pData_frma_MM$pCh_DFS_T),]
+pData_frma_MM_WS <- pData_frma_MM[!(is.na(pData_frma_MM$pCh_DFS_T) | is.na(pData_frma_MM$pCh_DFS_E)),]
 View(pData_frma_MM_WS)
 dim(pData_frma_MM_WS)
 eData_frma_MM_WS <- eData_frma_MM[,rownames(pData_frma_MM_WS)]
@@ -161,71 +161,20 @@ library(dplyr)
 library(survival)
 library(survminer)
 
-rownames(eData_frma_MM_WS)[7]
-temp <- coxph(Surv(pData_frma_MM_WS$pCh_DFS_T,as.numeric(pData_frma_MM_WS$pCh_DFS_E))~eData_frma_MM_WS[7,])
-summary_temp <- summary(temp)
-summary_temp$logtest
-summary_temp$waldtest
-summary_temp$coefficients[1,]
-
-
-cox_all_genes <- function(eData,pData){
-  list_out <- list()
-  for(i in 1:nrow(eData)){
-    print(i)
-    temp <- summary(coxph(Surv(pData$pCh_DFS_T,as.numeric(pData$pCh_DFS_E))~eData[i,]))$coefficients[1,]
-    list_out[[i]] <- temp
-  }
-  df_out <- data.frame(do.call("rbind",list_out))
-  rownames(df_out) <-rownames(eData)
-  return(df_out)
-}
+#surv_test <- coxph(Surv(pData_frma_MM_WS$pCh_DFS_T,as.numeric(pData_frma_MM_WS$pCh_DFS_E))~eData_frma_MM_WS[7,])
 
 #Computing cox proportional hazard models for all studied genes.
 
 cox_all_genes <- cox_all_genes(eData_frma_MM_WS,pData_frma_MM_WS)
+
 colnames(cox_all_genes) <- c("coef","exp_coef","se_coef","z","p_val")
 save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MM_fma.Rda",cox_all_genes)
 cox_all_genes <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MM_fma.Rda"))
 View(cox_all_genes)
 
-#HASTA AQUÍ HEMOS LLAGAO
+#HR values higher than one or positive Z values indicate genes for which higher expression is associated with higher hazard rations or risks. (shorter relapse times)
 
-
-
-View(cox_all_genes)
-
-
-cor.test(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
-plot(eData_frma_MM_WS["CMC2",],pData_frma_MM_WS$pCh_DFS_T)
-
-#Genes for which high expression levels are linked to higher survival times.
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["BCL2",] >= mean(eData_frma_MM_WS["BCL2",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["BCL2",] >= mean(eData_frma_MM_WS["BCL2",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["LRIG1",] >= mean(eData_frma_MM_WS["LRIG1",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["LRIG1",] >= mean(eData_frma_MM_WS["LRIG1",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["IL6ST",] >= mean(eData_frma_MM_WS["IL6ST",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["IL6ST",] >= mean(eData_frma_MM_WS["IL6ST",]),"Up","Down"))
-
-#Genes for wchih low expression levels arre linked to 
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CMC2",] >= mean(eData_frma_MM_WS["CMC2",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CMC2",] >= mean(eData_frma_MM_WS["CMC2",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eData_frma_MM_WS["CCNB2",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["MELK",] >= mean(eData_frma_MM_WS["MELK",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["MELK",] >= mean(eData_frma_MM_WS["MELK",]),"Up","Down"))
-
-t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["NCAPG",] >= mean(eData_frma_MM_WS["NCAPG",]),"Up","Down"))
-boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["NCAPG",] >= mean(eData_frma_MM_WS["NCAPG",]),"Up","Down"))
+#HR values lower than one or negative Z values indicate genes for which higher expression values are associated with lower relapse-free survival risks. (longer relapse times)
 
 #HR values higher than 1 imply an increase in hazard (reduction in survival), therefore in those cases increases in gene expresion reduce the survival. 
 
@@ -238,9 +187,19 @@ boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["CCNB2",] >= mean(eDa
 
 t.test(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
 boxplot(pData_frma_MM_WS$pCh_DFS_T~ifelse(eData_frma_MM_WS["EVL",] >= mean(eData_frma_MM_WS["EVL",]),"Up","Down"))
-
-save(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/cox_all_genes_MRV_frma.Rda",cox_all_genes)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 Step by step TDA analysis for frma maxmean data. 
 
@@ -309,3 +268,11 @@ dim(disease_vectors)
 https://thriv.github.io/biodatasci2018/r-survival.html
 https://thriv.github.io/biodatasci2018/r-survival.html
 https://www.datacamp.com/community/tutorials/survival-analysis-R
+
+
+Theory links
+
+BCL2 expression and breast cancer relapse
+
+https://journals.sagepub.com/doi/10.1177/1533033820983081
+https://pubmed.ncbi.nlm.nih.gov/9815973/

@@ -583,7 +583,6 @@ get_samples_to_remove <- function(analysis_results,min_numner_of_failed_tests = 
 }
 
 
-
 #Extracting data from qq (Good Function)
 
 get_outliers_info <- function(data_aqm){
@@ -886,7 +885,6 @@ generate_the_disease_vector <- function(disease_matrix,normal_space){
 }
 
 
-
 #Compute the goodness of fit measure for W for for the flat matrix.
 
 goodnes_w <- function(vector_of_sv,n_val){
@@ -927,3 +925,45 @@ Create_Normal_State_Model <- function(svd_res,number_of_selected_comp){
   print(dim(normal_space_b))
   return(normal_space_b)
 }
+
+#Computing proportional hazard models for each gene.
+
+
+cox_all_genes <- function(eData,pData){
+  require(dplyr)
+  require(survival)
+  require(survminer)
+  list_out <- list()
+  for(i in 1:nrow(eData)){
+    print(i)
+    temp <- summary(coxph(Surv(pData$pCh_DFS_T,as.numeric(pData$pCh_DFS_E))~eData[i,]))$coefficients[1,]
+    list_out[[i]] <- temp
+  }
+  df_out <- data.frame(do.call("rbind",list_out))
+  rownames(df_out) <-rownames(eData)
+  return(df_out)
+}
+
+
+#Plotting WGCNA functions (fit to power law)
+
+plot_wgcna_power_Tables <- function(x,name_study,thr_fit = 0.85){
+  plot(x$fitIndices[,1], -sign(x$fitIndices[,3])*x$fitIndices[,2],
+       xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+       main = paste("Scale independence in ", name_study),ylim = c(0,1))
+  text(x$fitIndices[,1], -sign(x$fitIndices[,3])*x$fitIndices[,2],
+       labels=powers,cex=1,col="red")
+  abline(h=thr_fit,col="red")
+}
+
+#Plotting WGCNA functions (Connectivity)
+
+
+plot_wgcna_power_Tables_con <- function(x,name_study,thr_fit = 0.85){
+  plot(x$fitIndices[,1], x$fitIndices[,5],
+       xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+       main = paste("Scale independence in ", name_study))
+  text(x$fitIndices[,1], x$fitIndices[,5],
+       labels=powers,cex=1,col="red")
+}
+
