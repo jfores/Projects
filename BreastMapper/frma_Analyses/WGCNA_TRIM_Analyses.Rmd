@@ -34,6 +34,8 @@ for(i in 1:length(studies)){
   
 }
 
+
+
 powerTables = vector(mode = "list", length = length(e_list))
 powers = c(seq(2, 20, by=1));
 
@@ -57,8 +59,33 @@ for(i in 1:length(studies)){
 selected_thrs <- unlist(lapply(powerTables,function(x) x[[1]]))
 
 
+for(i in 1:length(studies)){
+  plot_wgcna_power_Tables_con(powerTables[[i]],studies[i])
+}
+```
 
-plot_wgcna_power_Tables_con(powerTables[[2]],studies[2])
+Identification of consensus modules:
+
+
+```{r}
+STPowers <- selected_thrs
+
+
+help("blockwiseConsensusModules")
+
+
+multiExpr = list()
+for( i in 1:length(e_list)){
+  multiExpr[[i]]<- list(data = e_list[[i]])
+}
+
+checkSets(multiExpr,checkStructure = TRUE)
+
+mods <- blockwiseConsensusModules(multiExpr, maxBlockSize = 30000, corType = "bicor", power = selected_thrs, networkType = "signed hybrid", TOMDenom = "mean", checkMissingData = FALSE, deepSplit = 3, reassignThresholdPS = 0, pamRespectsDendro = FALSE, mergeCutHeight = 0.25, numericLabels = TRUE, getTOMScalingSamples = TRUE, consensusQuantile = 0.25, verbose = 3, indent = 2)
+
+save(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/mods.Rda",mods)
+mods <- get(load(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/mods.Rda"))
+
 ```
 
 
