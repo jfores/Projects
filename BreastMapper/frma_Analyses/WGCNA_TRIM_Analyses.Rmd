@@ -86,11 +86,27 @@ mods <- blockwiseConsensusModules(multiExpr, maxBlockSize = 30000, corType = "bi
 save(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/mods.Rda",mods)
 mods <- get(load(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/mods.Rda"))
 
+labels <- list()
+labels[[1]] <- mods$colors
+
+plotDendroAndColors(mods$dendrograms[[1]],labels2colors(mods$colors),dendroLabels = F,addGuide = T,hang = 0.02, guideHang = 0.05, marAll = c(1, 9, 2, 1), cex.lab = 1.2, cex.colorLabels = 1.1)
+
+help("plotDendroAndColors")
+help("GOenrichmentAnalysis")
+GOenrichmentAnalysis(labels,colnames(multiExpr[[1]]$data))
 ```
 
-
+Obtaining multiseg module eigenvalues.
 
 ```{r}
 help("pickSoftThreshold")
+MEs = multiSetMEs(multiExpr, universalColors = labels[[1]], excludeGrey = TRUE)
+save(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/MEs.Rda",MEs)
+MEs <- get(load(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/MEs.Rda"))
 ```
+
+```{r}
+
+```
+
 
