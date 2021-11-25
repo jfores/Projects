@@ -34,11 +34,8 @@ for(i in 1:length(studies)){
   
 }
 
-
-
 powerTables = vector(mode = "list", length = length(e_list))
 powers = c(seq(2, 20, by=1));
-
 
 for (i in 1:length(e_list)){
   powerTables[[i]] <- pickSoftThreshold(e_list[[i]], powerVector=powers, corFnc = "bicor",networkType = "signed hybrid", blockSize = 14000,verbose = 2)
@@ -57,7 +54,6 @@ for(i in 1:length(studies)){
 }
 
 selected_thrs <- unlist(lapply(powerTables,function(x) x[[1]]))
-
 
 for(i in 1:length(studies)){
   plot_wgcna_power_Tables_con(powerTables[[i]],studies[i])
@@ -103,10 +99,256 @@ help("pickSoftThreshold")
 MEs = multiSetMEs(multiExpr, universalColors = labels[[1]], excludeGrey = TRUE)
 save(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/MEs.Rda",MEs)
 MEs <- get(load(file = "/home/jaume/Projects/BreastMapper/Results_TRIM29/MEs.Rda"))
+table(MEs[[1]]$validColors)
+
+#Computing intramodular Hubs from consensus modules.
+
+consensusHubs <- consensusKME(multiExpr,labels[[1]])
+class(consensusHubs)
 ```
 
-```{r}
+Computing the deviance residuals of survival time.
 
+```{r}
+View(pData_frma_MM)
+pData_frma_MM_splitted <- split(pData_frma_MM,factor(pData_frma_MM$pCh_Batch))
+length(pData_frma_MM_splitted)
+
+#Deviance for relapse free survival.
+
+for(i in 1:length(pData_frma_MM_splitted)){
+  print(i)
+  n_present <- nPresent(pData_frma_MM_splitted[[i]]$pCh_DFS_T)
+  if(n_present > 2){
+  deviance_rfs <- coxRegressionResiduals(pData_frma_MM_splitted[[i]]$pCh_DFS_T,as.numeric(pData_frma_MM_splitted[[i]]$pCh_DFS_E))$deviance
+  pData_frma_MM_splitted[[i]]$deviance_rfs <- deviance_rfs
+  }
+  else{
+    deviance_rfs <- rep(NA,nrow(pData_frma_MM_splitted[[i]]))
+    pData_frma_MM_splitted[[i]]$deviance_rfs <- deviance_rfs
+  }
+}
+
+#Computing cox proportional hazard models Deviance for overal survival.
+
+for(i in 1:length(pData_frma_MM_splitted)){
+  print(i)
+  n_present <- nPresent(pData_frma_MM_splitted[[i]]$pCh_Death_T)
+  if(n_present > 2){
+  deviance_os <- coxRegressionResiduals(pData_frma_MM_splitted[[i]]$pCh_Death_T,as.numeric(pData_frma_MM_splitted[[i]]$pCh_Death_E))$deviance
+  pData_frma_MM_splitted[[i]]$deviance_rfs <- deviance_os
+  }
+  else{
+    deviance_os <- rep(NA,nrow(pData_frma_MM_splitted[[i]]))
+    pData_frma_MM_splitted[[i]]$deviance_os <- deviance_os
+  }
+}
+
+#Generating phono dataframe for each PAM50 subtype.
+
+for(i in 1:length(pData_frma_MM_splitted)){
+  df_subtype <- data.frame(matrix(NA,nrow = nrow(pData_frma_MM_splitted[[i]]),ncol = 5))
+  names_df <- c("Her2","LumB","LumA","Basal","Normal")
+  colnames(df_subtype) <- names_df
+  for(j in 1:length(names_df)){
+    bool_temp <- pData_frma_MM_splitted[[i]]$pam50_frma == names_df[j]
+    df_subtype[bool_temp,j] <- "1"
+    df_subtype[!bool_temp,j] <- "0"
+  }
+  colnames(df_subtype) <- paste("pCh_PAM_50_Each",colnames(df_subtype))
+  pData_frma_MM_splitted[[i]] <- cbind(pData_frma_MM_splitted[[i]],df_subtype)
+}
+
+#Computing correlations between all covariates and the eigengenes of each module.
+
+
+Cor_And_Pval_All <- mapply(function(x,y) corAndPvalue(x$data,y),MEs,pData_frma_MM_splitted,SIMPLIFY = F)
+
+#De aquí se pueden sacar los pesos para stoufer.
+
+Cor_And_Pval_All[[1]]$nObs
+
+
+
+MEsignif.Z <- lapply(Cor_And_Pval_All, function(x) x$Z)
+
+MEsignif_nobs <- lapply(Cor_And_Pval_All, function(x) x$nObs)
+
+
+View(MEsignif.Z[[1]])
+
+
+#Create function to compute weighted meta-analyses for each column (This is the function to compute the weighted Stouffer's method)
+
+meta_norm_nobs <- function(list_z_scores,list_nobs,column){
+  reduced_data <- Reduce("cbind",lapply(list_z_scores, function(x) x[,column]))
+  reduced_data_nobs <- Reduce("cbind",lapply(list_nobs, function(x) x[,column]))
+  bool_filt <- !(colSums(is.na(reduced_data)) > 0)
+  reduced_data <- reduced_data[,bool_filt]
+  reduced_data_nobs <- reduced_data_nobs[,bool_filt]
+  reduced_data_nobs <- unname(reduced_data_nobs[1,])
+  weight_st <- sqrt(reduced_data_nobs)
+  number_of_studies <- ncol(reduced_data)
+  z_comb_num <- rowSums(t(t(reduced_data) * weight_st))
+  z_comb_den <- sqrt(sum(weight_st^2 ))
+  z_comb <- z_comb_num / z_comb_den
+  p_comb <- 2*pnorm(abs(z_comb), lower.tail = FALSE)
+  return(list(z_comb,p_comb))
+  
+}
+
+
+
+test <- meta_norm_nobs(MEsignif.Z,MEsignif_nobs,2)
+test_1 <- test[[1]]
+test_2 <- test[[2]]
+
+
+
+mat <- matrix(c(1,1,1,2,2,2,3,3,3),nrow = 3)
+vec <- c(1,2,3)
+t(t(mat) * vec)
+
+#Creating function for computing meta-analyses for each column (This is the funciton to compute the Stouffers method with equal weights).
+
+meta_norm <- function(list_z_scores,column){
+  reduced_data <- Reduce("cbind",lapply(list_z_scores, function(x) x[,column]))
+  reduced_data <- reduced_data[,!(colSums(is.na(reduced_data)) > 0)]
+  number_of_studies <- ncol(reduced_data)
+  z_comb <- rowSums(reduced_data)
+  print(z_comb)
+  z_comb <- z_comb * (1/sqrt(number_of_studies))
+  p_comb <- 2*pnorm(abs(z_comb), lower.tail = FALSE)
+  return(list(z_comb,p_comb))
+  
+}
+
+#Compute it for all data columns
+
+list_all_out <- list()
+name_cov <- c()
+counter <- 1
+for(i in 1:ncol(MEsignif.Z[[1]])){
+  print(i)
+  try({
+  print(colnames(MEsignif.Z[[1]])[i])
+  list_all_out[[counter]] <- meta_norm(MEsignif.Z,i)
+  name_cov <- c(name_cov,colnames(MEsignif.Z[[1]])[i])
+  counter <- counter + 1
+  })
+}
+names(list_all_out) <- name_cov
+
+#Extracting pooled z_scores and p_values.
+
+z_pooled <- data.frame(lapply(list_all_out,function(x) x[[1]]))
+p_val <- data.frame(lapply(list_all_out,function(x) x[[2]]))
+View(p_val)
+
+length(list_all_out)
+list_all_out$pCh_DFS_E
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reduce("+",MEsignif.Z)
+lapply(MEsignif.Z,dim)
+
+setdiff(colnames(MEsignif.Z[[1]]),colnames(MEsignif.Z[[4]]))
+
+
+
+help("apply")
+
+MEsignif.Z
+
+
+
+   
+  
+
+
+
+View(Cor_And_Pval_All[[1]]$Z)
+
+Cor_And_Pval_All <- corAndPvalue(MEs[[1]]$data,pData_frma_MM_splitted[[1]])
+
+
+Cor_And_Pval_All[[1]]
+
+
+
+MEsignif.metaZ[[a]] = apply(MEsignif.Z[[a]], c(1,3), sum, na.rm = TRUE)/
+sqrt(apply(!is.na(MEsignif.Z[[a]]), c(1,3), sum))
+MEsignif.metap[[a]] = 2*pnorm(abs(MEsignif.metaZ[[a]]), lower.tail = FALSE)
+
+MEsignif.Z
+
+#Initialize lists to hold association statistics
+
+MEsignif = list()
+MEsignif.p = list()
+MEsignif.Z = list()
+MEsignif.metaZ = list()
+MEsignif.metap = list()
+
+
+
+
+
+
+
+
+unique(pData_frma_MM_splitted[[1]]$pam50_frma)
+
+View(pData_frma_MM_splitted[[2]])
+
+
+
+
+View(test$cor)
+
+
+
+
+
+
+help("corAndPvalue")
+
+
+View(pData_frma_MM_splitted[[1]])
+
+
+help("nPresent")
+coxRegressionResiduals(pData_frma_MM_splitted[[1]]$pCh_DFS_T,as.numeric(pData_frma_MM_splitted[[1]]$pCh_DFS_E))$deviance
+
+help("consensusKME")
+
+help("coxRegressionResiduals")
+```
+
+
+```{r}
+https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/MetaAnalysis/
+  
+https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/
+  
+https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/MetaAnalysis/Code/LungCancer/LungCancer-consensusModules.pdf
+
+https://pubmed.ncbi.nlm.nih.gov/23613865/
+  
+https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0154870
 ```
 
 
