@@ -18,6 +18,7 @@ Preparing the data.
 
 ```{r}
 studies <- c("GSE11121","GSE12093","GSE12276","GSE1456","GSE16391","GSE16446","GSE17705","GSE17907","GSE19615","GSE2034","GSE20685","GSE20711","GSE21653","GSE25066","GSE2603","GSE26971","GSE30010","GSE31519","GSE42568","GSE45255","GSE4922","GSE5327","GSE65216","GSE7390","GSE9195")
+table(duplicated(studies))
 length(unique(studies))
 
 dir_root <- "/home/jaume/Projects/BreastMapper/Data/"

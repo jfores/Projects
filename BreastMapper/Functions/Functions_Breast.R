@@ -967,3 +967,39 @@ plot_wgcna_power_Tables_con <- function(x,name_study,thr_fit = 0.85){
        labels=powers,cex=1,col="red")
 }
 
+################################################################
+##################DIVIDE DATASET IN EQUAL PARTS#################
+################################################################
+
+
+helper_funct_split_ds <- function(x){
+  return(sample(rownames(x),nrow(x)/2))
+}
+
+
+divide_ds_two <- function(exp_data,pheno_data){
+  
+  bool_T <- pheno_data$pCh_Status == "T"
+  bool_NT <- pheno_data$pCh_Status == "NT"
+  
+  pheno_data_T <- pheno_data[bool_T,]
+  pheno_data_NT <- pheno_data[bool_NT,]
+  
+  sampled_T <- lapply(split(pheno_data_T,as.factor(pheno_data_T$pCh_Batch)),helper_funct_split_ds)
+  sampled_T <- unlist(sampled_T,use.names = F)
+  
+  sampled_NT <- lapply(split(pheno_data_NT,as.factor(pheno_data_NT$pCh_Batch)),helper_funct_split_ds)
+  sampled_NT <- unlist(sampled_NT,use.names = F)
+  
+  pheno_data_A <- pheno_data[c(sampled_T,sampled_NT),]
+  exp_data_A <-   exp_data[,c(sampled_T,sampled_NT)]
+  
+  pheno_data_B <- pheno_data[!rownames(pheno_data) %in% rownames(pheno_data_A),]
+  exp_data_B <-   exp_data[,!rownames(pheno_data) %in% rownames(pheno_data_A)]
+  
+  output_list <- list(list(exp_data_A,pheno_data_A),list(exp_data_B,pheno_data_B))
+  
+  return(output_list)
+  
+}
+

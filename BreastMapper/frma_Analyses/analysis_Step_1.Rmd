@@ -4,47 +4,59 @@ editor_options:
   chunk_output_type: console
 ---
 
+RUN ALWAYS
+
+Prepare session and loading functions.
 
 ```{r}
 rm(list = ls())
-
+options(stringsAsFactors = FALSE)
 source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
+```
 
+Installing SurvMap and loading it into the environment.
+
+```{r}
+library(devtools) #Loading devtools
+#install_github("jfores/SurvMap") #Installing SurvMap
+library(SurvMap) #Loading SurvMap.
+```
+
+STARTING POINT 1
+
+
+Loading the complete breast cancer dataset.
+
+```{r}
 list_MM_frma <- get(load(file = "/home/jaume/Projects/BreastMapper/Data/Interm_DS/list_MM_frma.Rda"))
 eData_frma_MM <- list_MM_frma[[1]]
 pData_frma_MM <- list_MM_frma[[2]]
 table(colnames(eData_frma_MM) == rownames(pData_frma_MM))
+table(pData_frma_MM$pCh_Status)
 ```
 
-#Flat vector construction.
+Divide dataset into two blocks of the same size.
 
 ```{r}
-eData_frma_MM_NT <- eData_frma_MM[,pData_frma_MM$pCh_Status == "NT"]
-pData_frma_MM_NT <- pData_frma_MM[pData_frma_MM$pCh_Status == "NT",]
+source("/home/jaume/Projects/BreastMapper/Functions/Functions_Breast.R")
 
-#Flattening normal expession data.
-
-eData_frma_MM_NT_flat <- flattenign_vectors(eData_frma_MM_NT[,1:15])
-
-svd_results <- svd(eData_frma_MM_NT_flat)
-
-help(svd)
-
-goodness_of_fit <- function(svd_results,n_genes){
-  eigen_val <- svd_results$d
-  for(i in 1:length(eigen_val)-1){
-    squares_i <- eigen_val[i]^2
-    squares_i_to_r <- sum(eigen_val[(i+1):length(eigen_val)]^2)
-    num_r <- (n_genes-i-1)*(length(eigen_val)-i)
-    den_r <- (n_genes + length(eigen_val) - 2*i)
-    w_l <- (squares_i/squares_i_to_r)*(num_r/den_r)
-    print(w_l)
-  }
-}
-
-
-plot(1:14,goodnes_w(svd_results$d,nrow(eData_frma_MM_NT_flat)))
-
-
+ds_splitted <- divide_ds_two(eData_frma_MM,pData_frma_MM)
+save(file = "/media/data/jaume/BreastCancer/Analysis_Mapper/ds_splitted.Rda",ds_splitted)
 ```
+
+STARTING POINT 2
+
+Loading the spited data.
+
+```{r}
+ds_splitted <- get(load(file =  "/media/data/jaume/BreastCancer/Analysis_Mapper/ds_splitted.Rda"))
+exp_A <- ds_splitted[[1]][[1]]
+pheno_A <- ds_splitted[[1]][[2]]
+```
+
+SurvMap Analysis dataset A.
+
+
+
+
 
